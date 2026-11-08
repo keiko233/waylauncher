@@ -19,6 +19,14 @@ Requirements: Apple Silicon macOS, Go (any recent version; `go.mod` asks for Go 
 
 The installer builds `~/Applications/Waylauncher.app` (bundle id `com.keiko233.waylauncher`, ad-hoc signed, with a Local Network usage description and the `waylauncher://` URL scheme). An existing `Waylauncher.app` is moved to `~/Library/Application Support/Waylauncher/Backups/<timestamp>/` first. It then runs `--check-config --dry-run`, which reads your configuration and writes nothing.
 
+## CI and releases
+
+GitHub Actions runs the Go tests and `go vet` on macOS arm64 for pushes and pull requests, and builds an application ZIP as a workflow artifact using the same installer. The build checks an isolated example configuration, verifies the ad-hoc signature and bundle version, and writes a SHA-256 checksum. The CI build does not test a real remote desktop or prove a window is visible.
+
+To prepare a release, run **Actions → Prepare release draft** on the default branch and enter a new tag such as `v1.2.3`. The workflow creates the tag at the selected commit and a draft containing commits since the nearest reachable version tag (or the full history if none exists). Review the draft before publishing. Publishing the release triggers **Release**, which builds from the release tag and uploads `Waylauncher-1.2.3-macos-arm64.zip` and its `.sha256` file. Re-running that workflow replaces assets of the same name. Repository Actions must be enabled and allowed to write repository contents. GitHub-hosted execution and release uploads require the workflows to be pushed to GitHub; release events require the workflow on the default branch.
+
+The ZIP contains an ad-hoc signed, non-notarized Apple Silicon app; macOS may require the user to explicitly allow it to open. Release tags currently use numeric `vMAJOR.MINOR.PATCH` versions; use `python3 scripts/install.py --version 1.2.3` to set the same bundle version for a local build.
+
 Runtime requirements are those of the Swift launcher: `~/Applications/Cocoa-Way.app`, `waypipe` in `/opt/homebrew/bin`, working SSH key authentication and a trusted host key for the Linux machine, and on the remote side `waypipe` and `/usr/local/libexec/vm200-waypipe-app` (the existing deployment; software rendering is scoped by that wrapper). The installer does not touch any of them.
 
 ## Using it

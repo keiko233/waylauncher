@@ -17,6 +17,7 @@ import datetime
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -37,7 +38,11 @@ def main():
     ap.add_argument("--backup-dir", type=Path,
                     default=home / "Library/Application Support/Waylauncher/Backups",
                     help="where a replaced bundle is moved")
+    ap.add_argument("--version", default=VERSION,
+                    help="numeric bundle version, e.g. 1.2.3 (default: %(default)s)")
     args = ap.parse_args()
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", args.version):
+        ap.error("--version must be a numeric MAJOR.MINOR.PATCH version")
     if os.uname().sysname != "Darwin":
         raise SystemExit("This installer requires macOS")
     if args.legacy_swift:
@@ -61,6 +66,7 @@ def make_icns(out: Path, work: Path):
 
 def install(args):
     dest, backup_root = args.dest, args.backup_dir
+    version = args.version
     dest.mkdir(parents=True, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     with tempfile.TemporaryDirectory(prefix="waylauncher-build-") as tmp:
@@ -72,17 +78,17 @@ def install(args):
 
         # Pure Go (no cgo). go.mod pins Go 1.27.3; GOTOOLCHAIN=auto fetches it when needed.
         env = dict(os.environ, CGO_ENABLED="0")
-        run(["go", "build", "-trimpath", "-ldflags", f"-s -w -X main.version={VERSION}",
+        run(["go", "build", "-trimpath", "-ldflags", f"-s -w -X main.version={version}",
              "-o", contents / "MacOS/waylauncher", "./cmd/waylauncher"], cwd=root, env=env)
         # The Dock helper: copied into one generated bundle per application at run time.
-        run(["go", "build", "-trimpath", "-ldflags", f"-s -w -X main.version={VERSION}",
+        run(["go", "build", "-trimpath", "-ldflags", f"-s -w -X main.version={version}",
              "-o", contents / "Resources/waylauncher-dock-helper", "./cmd/waylauncher-dock-helper"], cwd=root, env=env)
         make_icns(contents / "Resources/Waylauncher.icns", tmp)
 
         info = dict(
             CFBundleIdentifier=BUNDLE_ID, CFBundleName="Waylauncher", CFBundleDisplayName="Waylauncher",
             CFBundleExecutable="waylauncher", CFBundlePackageType="APPL", CFBundleIconFile="Waylauncher",
-            CFBundleShortVersionString=VERSION, CFBundleVersion=VERSION,
+            CFBundleShortVersionString=version, CFBundleVersion=version,
             LSMinimumSystemVersion="12.0", NSHighResolutionCapable=True,
             LSApplicationCategoryType="public.app-category.utilities",
             # Release behaviour of MyGo (no web inspector) for this go build.
