@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,6 +13,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"github.com/keiko233/waylauncher/internal/gui"
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/instance"
 	"github.com/keiko233/waylauncher/internal/launcher"
 	"github.com/keiko233/waylauncher/internal/profile"
@@ -81,6 +81,7 @@ func Run(o Options) error {
 	mygo.App.OnBeforeQuit(d.beforeQuit)
 
 	d.lastSet = o.Service.Settings()
+	i18n.Set(i18n.Resolve(d.lastSet.Language))
 	d.startDock(o.Dock)
 	mygo.Theme.SetSource(themeSource(d.lastSet.Theme))
 	mygo.App.SetMenu(appMenu(d))
@@ -180,12 +181,12 @@ func (d *desktop) handleURL(raw string) {
 	}
 	id := strings.Trim(u.Path, "/")
 	if !profile.ValidID(id) || !d.svc.HasApp(id) {
-		go mygo.Dialog.Error("Unknown application", "There is no application “"+truncate(id, 40)+"” in your profiles.")
+		go mygo.Dialog.Error(i18n.T("desktop.url.unknownApp.title"), i18n.T("desktop.url.unknownApp.message", "id", truncate(id, 40)))
 		return
 	}
 	go func() {
 		if _, err := d.svc.Open(id); err != nil {
-			mygo.Dialog.Error("Couldn’t open "+id, err.Error())
+			mygo.Dialog.Error(i18n.T("desktop.url.openFailed", "id", id), err.Error())
 		}
 	}()
 }
@@ -229,6 +230,19 @@ func (d *desktop) applySettings(s profile.Settings) {
 	if s.ShowInMenuBar != prev.ShowInMenuBar {
 		d.bar.setVisible(s.ShowInMenuBar)
 	}
+	if s.Language != prev.Language {
+		d.applyLanguage(s.Language)
+	}
+}
+
+// applyLanguage switches the UI language live: the catalog, the app menu, the
+// tray menu and the window (labels in the state are computed per State() call,
+// so a refresh re-renders everything in the new language).
+func (d *desktop) applyLanguage(setting string) {
+	i18n.Set(i18n.Resolve(setting))
+	mygo.App.SetMenu(appMenu(d))
+	d.bar.update(d.svc.State())
+	d.gui.Refresh()
 }
 
 // onInstanceEvent raises notifications. Disconnects are announced when the
@@ -245,13 +259,13 @@ func (d *desktop) onInstanceEvent(e instance.Event) {
 		if !set.NotifyOnDisconnect {
 			return
 		}
-		title = s.AppName + " disconnected"
-		body = s.Reason + ". It wasn’t restarted. Open Waylauncher to start it again; the old session can’t be recovered."
+		title = i18n.T("desktop.notify.disconnected.title", "app", s.AppName)
+		body = i18n.T("desktop.notify.disconnected.body", "reason", s.Reason)
 	case instance.Failed:
 		if d.windowVisible() {
 			return
 		}
-		title = s.AppName + " couldn’t start"
+		title = i18n.T("desktop.notify.failed.title", "app", s.AppName)
 		body = s.Reason
 	default:
 		return
@@ -287,9 +301,9 @@ func (d *desktop) beforeQuit(e *mygo.QuitEvent) {
 		if d.svc.Settings().QuitBehavior == "ask" {
 			n := d.svc.State().Live
 			res, err := mygo.Dialog.Message(mygo.MessageOptions{
-				Type: mygo.MessageWarning, Message: "Quit Waylauncher with " + plural(n, "app") + " running?",
-				Detail:  "They will close on their host. Unsaved work in them will be lost. Cocoa-Way keeps running.",
-				Buttons: []string{"Cancel", "Close apps and quit"}, DestructiveButtons: []int{1}, CancelButton: 0, DefaultButton: 0,
+				Type: mygo.MessageWarning, Message: i18n.N("desktop.quit.title", n),
+				Detail:  i18n.T("desktop.quit.detail"),
+				Buttons: []string{i18n.T("desktop.cancel"), i18n.T("desktop.quit.confirm")}, DestructiveButtons: []int{1}, CancelButton: 0, DefaultButton: 0,
 			})
 			if err != nil || res.Button != 1 {
 				return
@@ -305,18 +319,11 @@ func (d *desktop) beforeQuit(e *mygo.QuitEvent) {
 	}()
 }
 
-func plural(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return strconv.Itoa(n) + " " + noun + "s"
-}
-
 func appMenu(d *desktop) *mygo.Menu {
 	return mygo.NewMenu([]*mygo.MenuItem{
 		{Role: mygo.RoleAppMenu},
-		{Label: "File", Submenu: []*mygo.MenuItem{
-			{Label: "New Application…", Accelerator: "CmdOrCtrl+N", Click: func(*mygo.MenuItem, *mygo.Window) { go d.showWindow(gui.Nav{View: "new-app"}) }},
+		{Label: i18n.T("desktop.menu.file"), Submenu: []*mygo.MenuItem{
+			{Label: i18n.T("desktop.menu.newApp"), Accelerator: "CmdOrCtrl+N", Click: func(*mygo.MenuItem, *mygo.Window) { go d.showWindow(gui.Nav{View: "new-app"}) }},
 			mygo.Separator(),
 			{Role: mygo.RoleClose},
 		}},

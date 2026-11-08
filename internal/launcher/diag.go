@@ -3,12 +3,12 @@ package launcher
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/keiko233/waylauncher/internal/execx"
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/remote"
 	"github.com/keiko233/waylauncher/internal/transport/waypipe"
 )
@@ -44,7 +44,7 @@ func (s *Service) RunChecks(hostID string) (HostReport, error) {
 	h := s.file.HostByID(hostID)
 	s.mu.RUnlock()
 	if h == nil {
-		return HostReport{}, fmt.Errorf("unknown host %q", hostID)
+		return HostReport{}, errors.New(i18n.T("launcher.diag.err.unknownHost", "host", hostID))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -54,36 +54,36 @@ func (s *Service) RunChecks(hostID string) (HostReport, error) {
 	switch {
 	case err == nil:
 		rep.Checks = append(rep.Checks,
-			Check{ID: "ssh", Title: "SSH reachable", Kind: KindOK, Result: fmt.Sprintf("%d ms", chk.Latency.Milliseconds()),
-				Detail: "BatchMode, 5 s timeout. No password or key prompts in the app."},
-			Check{ID: "hostkey", Title: "Host key verified", Kind: KindOK, Result: "Trusted",
-				Detail: "Matched your known_hosts. Strict checking stays on."},
-			boolCheck("waypipe", "Remote waypipe", chk.WaypipeFound, "Found on PATH on "+h.ID+".", "Not found on PATH on "+h.ID+"."),
-			boolCheck("wrapper", "Launch wrapper", chk.WrapperExecutable, remote.Wrapper+" (sets software rendering for forwarded apps).", remote.Wrapper+" is missing or not executable."),
+			Check{ID: "ssh", Title: i18n.T("launcher.diag.ssh.title"), Kind: KindOK, Result: i18n.T("launcher.diag.ssh.latency", "ms", chk.Latency.Milliseconds()),
+				Detail: i18n.T("launcher.diag.ssh.okDetail")},
+			Check{ID: "hostkey", Title: i18n.T("launcher.diag.hostkey.title"), Kind: KindOK, Result: i18n.T("launcher.diag.hostkey.trusted"),
+				Detail: i18n.T("launcher.diag.hostkey.trustedDetail")},
+			boolCheck("waypipe", i18n.T("launcher.diag.waypipe.title"), chk.WaypipeFound, i18n.T("launcher.diag.waypipe.found", "host", h.ID), i18n.T("launcher.diag.waypipe.missing", "host", h.ID)),
+			boolCheck("wrapper", i18n.T("launcher.diag.wrapper.title"), chk.WrapperExecutable, i18n.T("launcher.diag.wrapper.found", "path", remote.Wrapper), i18n.T("launcher.diag.wrapper.missing", "path", remote.Wrapper)),
 		)
 	default:
 		kind := remote.KindOf(err)
 		rep.Checks = append(rep.Checks,
-			Check{ID: "ssh", Title: "SSH reachable", Kind: KindErr, Result: "Failed", Detail: err.Error()})
-		hk := Check{ID: "hostkey", Title: "Host key verified", Kind: KindIdle, Result: "Not checked", Detail: "The connection did not get that far."}
+			Check{ID: "ssh", Title: i18n.T("launcher.diag.ssh.title"), Kind: KindErr, Result: i18n.T("launcher.diag.ssh.failed"), Detail: err.Error()})
+		hk := Check{ID: "hostkey", Title: i18n.T("launcher.diag.hostkey.title"), Kind: KindIdle, Result: i18n.T("launcher.diag.hostkey.notChecked"), Detail: i18n.T("launcher.diag.hostkey.notCheckedDetail")}
 		switch kind {
 		case remote.KindHostKeyUnknown:
-			hk.Kind, hk.Result, hk.Detail = KindErr, "Not trusted", "The key is not in your known_hosts."
-			rep.Failure = &Failure{Kind: kind.String(), Title: "Host key not trusted",
-				Message:    "The key for " + h.SSH + " isn’t in your known_hosts, so the connection was refused. Waylauncher never accepts new keys. Connect once from Terminal and verify the fingerprint, then run the checks again.",
+			hk.Kind, hk.Result, hk.Detail = KindErr, i18n.T("launcher.diag.hostkey.untrusted"), i18n.T("launcher.diag.hostkey.untrustedDetail")
+			rep.Failure = &Failure{Kind: kind.String(), Title: i18n.T("launcher.diag.fail.untrusted.title"),
+				Message:    i18n.T("launcher.diag.fail.untrusted.message", "target", h.SSH),
 				SSHCommand: SSHCommand(h.SSH)}
 		case remote.KindHostKeyChanged:
-			hk.Kind, hk.Result, hk.Detail = KindErr, "CHANGED", "The host key differs from the one in known_hosts."
-			rep.Failure = &Failure{Kind: kind.String(), Title: "Host key has changed",
-				Message:    "The key for " + h.SSH + " differs from the one you trusted. The connection was refused. Verify the host yourself, then fix known_hosts manually. Waylauncher will not override this.",
+			hk.Kind, hk.Result, hk.Detail = KindErr, i18n.T("launcher.diag.hostkey.changed"), i18n.T("launcher.diag.hostkey.changedDetail")
+			rep.Failure = &Failure{Kind: kind.String(), Title: i18n.T("launcher.diag.fail.changed.title"),
+				Message:    i18n.T("launcher.diag.fail.changed.message", "target", h.SSH),
 				SSHCommand: SSHCommand(h.SSH)}
 		case remote.KindUnreachable, remote.KindTimeout:
-			rep.Failure = &Failure{Kind: kind.String(), Title: "Host unreachable",
-				Message:    "Check that the VM is running and the address is right. If Terminal reaches it but Waylauncher reports “No route to host”, allow Local Network access in System Settings › Privacy & Security › Local Network.",
+			rep.Failure = &Failure{Kind: kind.String(), Title: i18n.T("launcher.diag.fail.unreachable.title"),
+				Message:    i18n.T("launcher.diag.fail.unreachable.message"),
 				SSHCommand: SSHCommand(h.SSH)}
 		case remote.KindAuth:
-			rep.Failure = &Failure{Kind: kind.String(), Title: "Authentication failed",
-				Message:    "Waylauncher can’t type passwords. Use a key in your ssh-agent or ~/.ssh/config, and check that Terminal logs in without a prompt.",
+			rep.Failure = &Failure{Kind: kind.String(), Title: i18n.T("launcher.diag.fail.auth.title"),
+				Message:    i18n.T("launcher.diag.fail.auth.message"),
 				SSHCommand: SSHCommand(h.SSH)}
 		}
 		rep.Checks = append(rep.Checks, hk)
@@ -94,13 +94,13 @@ func (s *Service) RunChecks(hostID string) (HostReport, error) {
 		lw = LocalWaypipe
 	}
 	if path, ver, lerr := lw(ctx); lerr != nil {
-		rep.Checks = append(rep.Checks, Check{ID: "local-waypipe", Title: "Local waypipe", Kind: KindErr, Result: "Missing",
-			Detail: path + ": " + lerr.Error() + ". Install waypipe-darwin with Homebrew."})
+		rep.Checks = append(rep.Checks, Check{ID: "local-waypipe", Title: i18n.T("launcher.diag.local.title"), Kind: KindErr, Result: i18n.T("launcher.diag.missing"),
+			Detail: i18n.T("launcher.diag.local.missingDetail", "path", path, "error", lerr.Error())})
 	} else {
-		rep.Checks = append(rep.Checks, Check{ID: "local-waypipe", Title: "Local waypipe", Kind: KindOK, Result: ver, Detail: path})
+		rep.Checks = append(rep.Checks, Check{ID: "local-waypipe", Title: i18n.T("launcher.diag.local.title"), Kind: KindOK, Result: ver, Detail: path})
 	}
-	rep.Checks = append(rep.Checks, Check{ID: "persistence", Title: "Session persistence", Kind: KindIdle, Result: "None",
-		Detail: "Waypipe has none: a dropped connection ends the app. A normal SSH reconnect starts a new copy, not the old one."})
+	rep.Checks = append(rep.Checks, Check{ID: "persistence", Title: i18n.T("launcher.diag.persistence.title"), Kind: KindIdle, Result: i18n.T("launcher.diag.persistence.none"),
+		Detail: i18n.T("launcher.diag.persistence.detail")})
 
 	rep.Cocoa = s.RefreshCocoa(ctx)
 	if rep.Cocoa.Reachable {
@@ -118,9 +118,9 @@ func (s *Service) RunChecks(hostID string) (HostReport, error) {
 
 func boolCheck(id, title string, ok bool, okDetail, badDetail string) Check {
 	if ok {
-		return Check{ID: id, Title: title, Kind: KindOK, Result: "Found", Detail: okDetail}
+		return Check{ID: id, Title: title, Kind: KindOK, Result: i18n.T("launcher.diag.found"), Detail: okDetail}
 	}
-	return Check{ID: id, Title: title, Kind: KindErr, Result: "Missing", Detail: badDetail}
+	return Check{ID: id, Title: title, Kind: KindErr, Result: i18n.T("launcher.diag.missing"), Detail: badDetail}
 }
 
 // Report returns the last diagnostics of a host, if any.

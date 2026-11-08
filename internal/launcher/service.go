@@ -15,6 +15,7 @@ import (
 
 	"github.com/keiko233/waylauncher/internal/compositor"
 	"github.com/keiko233/waylauncher/internal/compositor/cocoaway"
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/instance"
 	"github.com/keiko233/waylauncher/internal/profile"
 	"github.com/keiko233/waylauncher/internal/remote"
@@ -116,7 +117,7 @@ func (s *Service) Reload(migrate bool) {
 		file, info.Source = res.File, res.Source
 		info.Warnings = append(info.Warnings, res.Warnings...)
 		if m := res.Migration; m != nil && m.Applied {
-			info.Notice = fmt.Sprintf("Imported your earlier profiles.json. The original was copied to %s and left in place.", m.BackupPath)
+			info.Notice = i18n.T("launcher.service.notice.imported", "path", m.BackupPath)
 		}
 		if err != nil {
 			info.Error = err.Error()
@@ -271,7 +272,7 @@ func appInfo(a profile.App, h *profile.Host, snaps []instance.Snapshot) AppInfo 
 	info := AppInfo{
 		ID: a.ID, Name: a.Name, Host: a.Host, Command: a.Command, CommandText: remote.Join(a.Command),
 		Cwd: a.Cwd, Env: a.Env, Instances: a.Instances, Transport: transportLabel(a.Transport.MacOS),
-		Pinned: a.Pinned, Icon: a.Icon, Glyph: g, Tile: tile, StatusKind: KindIdle, StatusLabel: "Not running", Action: "open",
+		Pinned: a.Pinned, Icon: a.Icon, Glyph: g, Tile: tile, StatusKind: KindIdle, StatusLabel: i18n.T("launcher.service.app.notRunning"), Action: "open",
 	}
 	if h != nil {
 		info.HostSSH = h.SSH
@@ -297,13 +298,13 @@ func appInfo(a profile.App, h *profile.Host, snaps []instance.Snapshot) AppInfo 
 	case info.Live > 0:
 		var parts []string
 		if connected > 0 {
-			parts = append(parts, fmt.Sprintf("%d connected", connected))
+			parts = append(parts, i18n.T("launcher.service.app.nConnected", "n", connected))
 		}
 		if connecting > 0 {
-			parts = append(parts, fmt.Sprintf("%d connecting", connecting))
+			parts = append(parts, i18n.T("launcher.service.app.nConnecting", "n", connecting))
 		}
 		if stopping > 0 {
-			parts = append(parts, fmt.Sprintf("%d stopping", stopping))
+			parts = append(parts, i18n.T("launcher.service.app.nStopping", "n", stopping))
 		}
 		info.StatusLabel = strings.Join(parts, " · ")
 		info.StatusKind = KindOK
@@ -314,16 +315,16 @@ func appInfo(a profile.App, h *profile.Host, snaps []instance.Snapshot) AppInfo 
 			info.Action = "new-window"
 		}
 	case last != nil && last.State == instance.Disconnected:
-		info.StatusKind, info.StatusLabel, info.Action = KindErr, "Disconnected"+exitSuffix(last), "start-again"
+		info.StatusKind, info.StatusLabel, info.Action = KindErr, i18n.T("launcher.service.instance.disconnected")+exitSuffix(last), "start-again"
 	case last != nil && last.State == instance.Failed:
-		info.StatusKind, info.StatusLabel, info.Action = KindErr, "Failed to start", "start-again"
+		info.StatusKind, info.StatusLabel, info.Action = KindErr, i18n.T("launcher.service.app.failedToStart"), "start-again"
 	}
 	return info
 }
 
 func exitSuffix(sn *instance.Snapshot) string {
 	if sn.ExitCode != nil && *sn.ExitCode >= 0 {
-		return fmt.Sprintf(" · exit %d", *sn.ExitCode)
+		return i18n.T("launcher.service.exitSuffix", "code", *sn.ExitCode)
 	}
 	return ""
 }
@@ -345,19 +346,19 @@ func instanceInfo(sn instance.Snapshot, f *profile.File) InstanceInfo {
 	}
 	switch sn.State {
 	case instance.Connecting:
-		in.Label, in.Kind, in.Detail = "Connecting", KindWarn, "Checking Cocoa-Way and SSH"
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.connecting"), KindWarn, i18n.T("launcher.service.instance.connecting.detail")
 	case instance.Connected:
-		in.Label, in.Kind, in.Detail = "Connected", KindOK, "Waypipe running · window not reported"
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.connected"), KindOK, i18n.T("launcher.service.instance.connected.detail")
 	case instance.Stopping:
-		in.Label, in.Kind, in.Detail = "Stopping", KindWarn, "Waiting for the connection to close"
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.stopping"), KindWarn, i18n.T("launcher.service.instance.stopping.detail")
 	case instance.Disconnected:
-		in.Label, in.Kind, in.Detail = "Disconnected", KindErr, sn.Reason
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.disconnected"), KindErr, sn.Reason
 	case instance.Failed:
-		in.Label, in.Kind, in.Detail = "Failed", KindErr, sn.Reason
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.failed"), KindErr, sn.Reason
 	case instance.Exited:
-		in.Label, in.Kind, in.Detail = "Exited normally", KindIdle, sn.Reason
+		in.Label, in.Kind, in.Detail = i18n.T("launcher.service.instance.exited"), KindIdle, sn.Reason
 		if strings.HasPrefix(sn.Reason, "stopped") {
-			in.Label = "Stopped"
+			in.Label = i18n.T("launcher.service.instance.stopped")
 		}
 	}
 	return in
@@ -455,7 +456,7 @@ func (s *Service) StartAgain(instanceID string) (OpenResult, error) {
 	return s.afterLaunch(lr)
 }
 
-const focusFallbackNote = "Brought Cocoa-Way forward. Exact window focus needs window support in Cocoa-Way."
+func focusFallbackNote() string { return i18n.T("launcher.service.focusFallback") }
 
 // Focus raises the instance's window when the compositor can, otherwise
 // brings Cocoa-Way forward. The note is shown to the user in the fallback case.
@@ -465,7 +466,7 @@ func (s *Service) Focus(instanceID string) (string, error) {
 	if err := s.mgr.Focus(ctx, instanceID); err != nil {
 		return "", err
 	}
-	return focusFallbackNote, nil
+	return focusFallbackNote(), nil
 }
 
 func (s *Service) Stop(instanceID string) error { return s.mgr.Stop(instanceID) }
@@ -545,7 +546,7 @@ func (s *Service) LogPath(instanceID string) (string, error) {
 		return "", instance.ErrUnknownInstance
 	}
 	if sn.LogPath == "" {
-		return "", errors.New("this instance has no log yet")
+		return "", errors.New(i18n.T("launcher.service.err.noInstanceLog"))
 	}
 	return sn.LogPath, nil
 }
@@ -567,7 +568,7 @@ func (s *Service) LastLogPath(appID string) (string, error) {
 		}
 	}
 	if newest == "" {
-		return "", errors.New("no log for this application yet")
+		return "", errors.New(i18n.T("launcher.service.err.noAppLog"))
 	}
 	return filepath.Join(s.cfg.LogDir, newest), nil
 }
@@ -610,7 +611,7 @@ func (s *Service) RefreshCocoa(ctx context.Context) CocoaInfo {
 // text repeats the socket path twice.
 func friendlyCocoaError(err error) string {
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ECONNREFUSED) {
-		return "Cocoa-Way isn’t running (nothing is listening on its control socket)."
+		return i18n.T("launcher.service.cocoaNotRunning")
 	}
 	return err.Error()
 }

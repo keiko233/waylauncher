@@ -8,6 +8,7 @@ import (
 
 	"github.com/keiko233/waylauncher/internal/desktop"
 	"github.com/keiko233/waylauncher/internal/dock"
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/instance"
 	"github.com/keiko233/waylauncher/internal/launcher"
 	"github.com/keiko233/waylauncher/internal/profile"
@@ -53,6 +54,7 @@ func startUI(o options, defaults profile.Paths, stderr io.Writer) int {
 		cfg.CocoaSocket, cfg.CocoaApp = "fake", "fake"
 	}
 	svc := launcher.New(cfg, true)
+	i18n.Set(i18n.Resolve(svc.Settings().Language))
 	icons := []string{o.cocoaIcon, os.Getenv("WAYLAUNCHER_COCOAWAY_ICON"),
 		filepath.Join(o.paths.ConfigDir, "cocoa-way-icon.png"),
 		filepath.Join(comp.AppPath, "Contents", "Resources", "icon.png")}

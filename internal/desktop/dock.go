@@ -2,12 +2,12 @@ package desktop
 
 import (
 	"log"
-	"strconv"
 	"sync"
 
 	"github.com/egoist/mygo"
 
 	"github.com/keiko233/waylauncher/internal/dock"
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -115,9 +115,9 @@ func (h *dockHost) ConfirmStopApp(app string) {
 	if info == nil || info.Live == 0 {
 		return
 	}
-	what := "the application"
+	detail := i18n.T("desktop.stop.detail.single", "host", info.Host)
 	if info.Live > 1 {
-		what = strconv.Itoa(info.Live) + " instances"
+		detail = i18n.T("desktop.stop.detail.multiple", "n", info.Live, "host", info.Host)
 	}
 	h.mu.Lock()
 	answer := h.devAnswer
@@ -131,14 +131,14 @@ func (h *dockHost) ConfirmStopApp(app string) {
 	}
 	mygo.App.Focus()
 	res, err := mygo.Dialog.Message(mygo.MessageOptions{
-		Type: mygo.MessageWarning, Message: "Stop " + info.Name + "?",
-		Detail:  "This ends " + what + " on " + info.Host + ". Unsaved work in it will be lost. It won’t be restarted.",
-		Buttons: []string{"Cancel", "Stop"}, DestructiveButtons: []int{1}, CancelButton: 0, DefaultButton: 0,
+		Type: mygo.MessageWarning, Message: i18n.T("desktop.stop.title", "app", info.Name),
+		Detail:  detail,
+		Buttons: []string{i18n.T("desktop.cancel"), i18n.T("desktop.stop.button")}, DestructiveButtons: []int{1}, CancelButton: 0, DefaultButton: 0,
 	})
 	if err != nil || res.Button != 1 {
 		return // the helper stays in the Dock
 	}
 	if _, err := h.d.svc.StopApp(app); err != nil {
-		h.d.report("Stop", err)
+		h.d.report(i18n.T("desktop.stop.button"), err)
 	}
 }
