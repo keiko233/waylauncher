@@ -1,0 +1,4 @@
+[
+  {"id":"konsole","name":"Linux Terminal","target":"keiko@10.0.0.9","arguments":["konsole","--separate","--nofork"]},
+  {"id":"foot","name":"Linux foot","target":"keiko@10.0.0.9","arguments":["foot"]}
+]

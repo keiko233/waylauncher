@@ -1,0 +1,33 @@
+#!/bin/bash
+# macOS Cocoa-Way or Windows WSLg client. Remote login shell must support Bash quoting.
+set -euo pipefail
+if [[ $(uname -s) == Darwin ]]; then
+    export XDG_RUNTIME_DIR="${COCOA_WAY_RUNTIME_DIR:-${TMPDIR%/}/cocoa-way}"
+    if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+        for candidate in "$XDG_RUNTIME_DIR"/wayland-*; do
+            if [[ -S "$candidate" ]]; then
+                export WAYLAND_DISPLAY="${candidate##*/}"
+                break
+            fi
+        done
+    fi
+fi
+if [[ -z ${XDG_RUNTIME_DIR:-} || -z ${WAYLAND_DISPLAY:-} ]]; then
+    echo 'Start Cocoa-Way (macOS) or run inside WSLg (Windows) first.' >&2
+    exit 1
+fi
+case "$WAYLAND_DISPLAY" in
+    /*) display_socket=$WAYLAND_DISPLAY ;;
+    *) display_socket=$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY ;;
+esac
+[[ -S "$display_socket" ]] || { echo "Missing Wayland socket: $display_socket" >&2; exit 1; }
+[[ $# -gt 0 ]] || set -- foot
+printf -v remote_command '%q ' /usr/local/libexec/vm200-waypipe-app "$@"
+ssh_options=()
+if [[ ${VM200_SSH_BATCH:-0} == 1 ]]; then
+    ssh_options=(-o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1)
+fi
+exec waypipe --no-gpu --compress=lz4 --threads=2 ssh \
+    "${ssh_options[@]}" \
+    -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+    "${VM200_SSH_TARGET:-keiko@10.0.0.9}" "$remote_command"
