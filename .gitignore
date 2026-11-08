@@ -4,3 +4,16 @@
 __pycache__/
 .env
 private/
+
+# Go build output
+/bin/
+/waylauncher
+/build/
+/dist/
+*.app/
+*.icns
+*.iconset/
+*.test
+*.out
+# Redacted test fixtures are source, not runtime logs
+!internal/instance/testdata/*.log
