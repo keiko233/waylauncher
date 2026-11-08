@@ -100,19 +100,21 @@ func TestUsage(t *testing.T) {
 }
 
 func TestFakeTransportNeedsIsolatedDirectories(t *testing.T) {
-	def := profile.Paths{ConfigDir: "/home/u/.config/waylauncher", LegacyDir: "/home/u/.config/vm200-launcher", BackupDir: "/home/u/bak"}
-	good := options{paths: profile.Paths{ConfigDir: "/t/c", LegacyDir: "/t/l", BackupDir: "/t/b"},
+	def := profile.Paths{ConfigDir: "/home/u/.config/waylauncher", LegacyDir: "/home/u/.config/vm200-launcher", BackupDir: "/home/u/bak", CacheDir: "/home/u/cache"}
+	good := options{paths: profile.Paths{ConfigDir: "/t/c", LegacyDir: "/t/l", BackupDir: "/t/b", CacheDir: "/t/cache"},
 		logDir: "/t/logs", dockBundleDir: "/t/apps", runtimeDir: "/t/rt"}
 	if err := checkFakeIsolated(good, def); err != nil {
 		t.Fatal(err)
 	}
 	for name, mut := range map[string]func(*options){
-		"config":  func(o *options) { o.paths.ConfigDir = def.ConfigDir },
-		"legacy":  func(o *options) { o.paths.LegacyDir = def.LegacyDir },
-		"backup":  func(o *options) { o.paths.BackupDir = def.BackupDir },
-		"log":     func(o *options) { o.logDir = "" },
-		"bundles": func(o *options) { o.dockBundleDir = "" },
-		"runtime": func(o *options) { o.runtimeDir = "" },
+		"config":      func(o *options) { o.paths.ConfigDir = def.ConfigDir },
+		"legacy":      func(o *options) { o.paths.LegacyDir = def.LegacyDir },
+		"backup":      func(o *options) { o.paths.BackupDir = def.BackupDir },
+		"cache":       func(o *options) { o.paths.CacheDir = def.CacheDir },
+		"cache-empty": func(o *options) { o.paths.CacheDir = "" },
+		"log":         func(o *options) { o.logDir = "" },
+		"bundles":     func(o *options) { o.dockBundleDir = "" },
+		"runtime":     func(o *options) { o.runtimeDir = "" },
 	} {
 		o := good
 		mut(&o)

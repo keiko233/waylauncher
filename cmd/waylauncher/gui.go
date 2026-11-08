@@ -52,6 +52,7 @@ func startUI(o options, defaults profile.Paths, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "waylauncher: %s=1: fake compositor, SSH and transport (sleep 600). Nothing real is started.\n", fakeEnv)
 		cfg.Compositor, cfg.Transports, cfg.Prober = fakeCompositor{}, map[string]transport.Transport{"waypipe": fakeTransport{}}, fakeProber{}
 		cfg.CocoaSocket, cfg.CocoaApp = "fake", "fake"
+		cfg.Exec = fakeExec // discovery never reaches a real host
 	}
 	svc := launcher.New(cfg, true)
 	i18n.Set(i18n.Resolve(svc.Settings().Language))

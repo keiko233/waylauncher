@@ -110,7 +110,7 @@ func (a *App) appCard(ap launcher.AppInfo) {
 	c, p := a.c, a.p
 	ui.Column(c.Key("card-"+ap.ID)).Padding(16).Gap(12).Radius(12).Background(p.card).Border(1, p.cardLine).Children(func() {
 		ui.Row(c).Gap(12).AlignItems(ui.Start).Children(func() {
-			a.tile(ap.Glyph, ap.Tile, 48, 12, 16)
+			a.appIcon(ap.Icon, ap.Glyph, ap.Tile, 48, 12, 16)
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, ap.Name).FontSize(14.5).FontWeight(600).SingleLine()

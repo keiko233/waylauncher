@@ -52,7 +52,7 @@ type desktop struct {
 // Run starts the application and returns when it quits. It must be called
 // from the main goroutine.
 func Run(o Options) error {
-	d := &desktop{svc: o.Service, gui: gui.New(o.Service, gui.Options{CocoaIcons: o.CocoaIcons}), dev: o.Dev}
+	d := &desktop{svc: o.Service, gui: gui.New(o.Service, gui.Options{CocoaIcons: o.CocoaIcons, IconBase: o.Dock.IconBase}), dev: o.Dev}
 	d.bar = &menuBar{d: d}
 
 	// One running instance; later launches (and deep links) reach it.

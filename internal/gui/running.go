@@ -79,7 +79,7 @@ func (a *App) instRow(in launcher.InstanceInfo) {
 	}
 	row.Children(func() {
 		ui.Row(c).Gap(10).AlignItems(ui.Center).MinWidth(0).Children(func() {
-			a.tile(in.Glyph, in.Tile, 32, 8, 12)
+			a.appIcon(in.Icon, in.Glyph, in.Tile, 32, 8, 12)
 			ui.Column(c).MinWidth(0).Children(func() {
 				ui.Text(c, in.AppName).FontSize(13.5).FontWeight(600).SingleLine()
 				a.mono(in.ID, 11).TextColor(p.muted).SingleLine()

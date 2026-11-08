@@ -85,7 +85,7 @@ type harness struct {
 func newHarness(t *testing.T, toml string, dark bool) *harness {
 	t.Helper()
 	d := t.TempDir()
-	p := profile.Paths{ConfigDir: filepath.Join(d, "cfg"), LegacyDir: filepath.Join(d, "legacy"), BackupDir: filepath.Join(d, "bak")}
+	p := profile.Paths{ConfigDir: filepath.Join(d, "cfg"), LegacyDir: filepath.Join(d, "legacy"), BackupDir: filepath.Join(d, "bak"), CacheDir: filepath.Join(d, "cache")}
 	if toml != "" {
 		os.MkdirAll(p.ConfigDir, 0o700)
 		os.WriteFile(p.ProfilesTOML(), []byte(toml), 0o600)
@@ -94,6 +94,7 @@ func newHarness(t *testing.T, toml string, dark bool) *harness {
 		Version: "test", Paths: p, LogDir: filepath.Join(d, "logs"), Compositor: fakeComp{},
 		Transports: map[string]transport.Transport{"waypipe": shellTransport{}},
 		Prober:     fakeProber{}, CocoaSocket: "/tmp/c.sock",
+		ScanHook: fakeScan, IconsHook: fakeIcons,
 		LocalWaypipeVersion: func(context.Context) (string, string, error) { return "/opt/homebrew/bin/waypipe", "waypipe 0.10", nil },
 	}, false)
 	t.Cleanup(func() {
@@ -151,7 +152,7 @@ func (h *harness) click(label string) {
 func TestApplicationsPage(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		h := newHarness(t, sample, dark)
-		for _, want := range []string{"Applications", "Linux Terminal", "foot", "Running", "Discover", "Coming soon", "Settings", "Cocoa-Way not running", "Single instance", "Multiple instances"} {
+		for _, want := range []string{"Applications", "Linux Terminal", "foot", "Running", "Discover", "Settings", "Cocoa-Way not running", "Single instance", "Multiple instances"} {
 			if !h.tt.HasText(want) {
 				t.Errorf("dark=%v: missing %q in %q", dark, want, h.tt.Texts())
 			}

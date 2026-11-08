@@ -23,6 +23,7 @@ import (
 const (
 	PageApps     = "apps"
 	PageRunning  = "running"
+	PageDiscover = "discover"
 	PageHost     = "host"
 	PageSettings = "settings"
 )
@@ -61,6 +62,7 @@ type App struct {
 
 	page     string
 	hostID   string
+	disc     discoverUI
 	filter   int // 0 all, 1 pinned
 	query    string
 	selInst  string
@@ -72,6 +74,7 @@ type App struct {
 	logAt    time.Time
 	logScrol ui.ScrollState
 
+	icons      profileIcons // decoded profile icons
 	iconPaths  []string
 	iconLoaded bool
 	cocoaIcon  ui.ImageSource // nil when not found
@@ -94,11 +97,14 @@ type Options struct {
 	// (empty entries are skipped). The image is read at run time, never
 	// bundled; when none loads, a status dot is shown instead.
 	CocoaIcons []string
+	// IconBase is the directory relative profile icon paths are taken
+	// against; the Dock bundles use the same one (the config directory).
+	IconBase string
 }
 
 // New builds the window state from the service.
 func New(svc *launcher.Service, o Options) *App {
-	return &App{svc: svc, st: svc.State(), page: PageApps, checking: map[string]bool{}, iconPaths: o.CocoaIcons}
+	return &App{svc: svc, st: svc.State(), page: PageApps, checking: map[string]bool{}, iconPaths: o.CocoaIcons, icons: profileIcons{base: o.IconBase}}
 }
 
 // Attach connects the window so background work can reach the view.
@@ -130,7 +136,7 @@ func (a *App) navigate(n Nav) {
 			a.selInst = n.ID
 		}
 	}
-	if n.View == PageApps || n.View == PageRunning || n.View == PageHost || n.View == PageSettings {
+	if n.View == PageApps || n.View == PageRunning || n.View == PageDiscover || n.View == PageHost || n.View == PageSettings {
 		a.page = n.View
 	}
 }
@@ -217,6 +223,8 @@ func (a *App) main() {
 	switch a.page {
 	case PageRunning:
 		a.pageRunning()
+	case PageDiscover:
+		a.pageDiscover()
 	case PageHost:
 		a.pageHost()
 	case PageSettings:

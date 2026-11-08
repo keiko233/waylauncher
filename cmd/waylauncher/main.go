@@ -25,6 +25,7 @@ flags:
   --legacy-dir DIR       default ~/.config/vm200-launcher (read-only profiles.json source for migration)
   --backup-dir DIR       default ~/Library/Application Support/Waylauncher/Backups
   --log-dir DIR          default ~/Library/Logs/Waylauncher
+  --cache-dir DIR        default ~/Library/Caches/Waylauncher (discovered application icons)
   --dock-helper PATH     waylauncher-dock-helper to put in the per-application Dock bundles
                          (default: Contents/Resources of the bundle or next to this executable;
                          none found: no per-application Dock icons)
@@ -64,6 +65,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	fs.StringVar(&o.paths.LegacyDir, "legacy-dir", defaults.LegacyDir, "")
 	fs.StringVar(&o.paths.BackupDir, "backup-dir", defaults.BackupDir, "")
 	fs.StringVar(&o.logDir, "log-dir", "", "")
+	fs.StringVar(&o.paths.CacheDir, "cache-dir", defaults.CacheDir, "")
 	fs.StringVar(&o.cocoaWayApp, "cocoa-way-app", "", "")
 	fs.StringVar(&o.cocoaIcon, "cocoa-way-icon", "", "")
 	fs.StringVar(&o.dockHelper, "dock-helper", "", "")

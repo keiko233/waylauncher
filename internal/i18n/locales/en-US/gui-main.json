@@ -111,7 +111,6 @@
   "gui.main.sidebar.apps": "Applications",
   "gui.main.sidebar.running": "Running",
   "gui.main.sidebar.discover": "Discover",
-  "gui.main.sidebar.soon": "Coming soon",
   "gui.main.sidebar.hosts": "Hosts",
   "gui.main.sidebar.addhost": "Add host",
   "gui.main.sidebar.nohosts": "No hosts yet",

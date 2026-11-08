@@ -152,16 +152,23 @@ func (a *App) editorSheet() {
 		backdrop.Background(p.scrim)
 		a.sheetPanel(panel, 760)
 		title, sub := i18n.T("gui.forms.editor.newTitle"), i18n.T("gui.forms.editor.newSub")
-		glyph := "+"
+		glyph, tile, icon := "+", "#23262E", ""
 		if !e.m.IsNew {
 			title, sub = e.m.Name, i18n.T("gui.forms.editor.editSub")
 			if title == "" {
 				title = e.m.ID
 			}
-			glyph = ">_"
+			glyph, icon = ">_", e.m.Icon
+			// The same icon as the card and the Dock bundle: the profile's
+			// image, else the generated glyph tile.
+			for _, ap := range a.st.Apps {
+				if ap.ID == e.m.ID {
+					glyph, tile = ap.Glyph, ap.Tile
+				}
+			}
 		}
 		ui.Row(c).Gap(14).Padding(20, 26, 14).AlignItems(ui.Center).Children(func() {
-			a.tile(glyph, "#23262E", 44, 11, 15)
+			a.appIcon(icon, glyph, tile, 44, 11, 15)
 			ui.Column(c).Grow(1).Children(func() {
 				ui.Text(c, title).FontSize(17).Bold().SingleLine()
 				a.muted(sub, 12)

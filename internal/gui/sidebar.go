@@ -56,9 +56,9 @@ func (a *App) sidebar() {
 	}) {
 		a.page = PageRunning
 	}
-	a.navRow("nav-discover", icDisc, p.icDisc, i18n.T("gui.main.sidebar.discover"), false, true, func() {
-		a.muted(i18n.T("gui.main.sidebar.soon"), 12)
-	})
+	if a.navRow("nav-discover", icDisc, p.icDisc, i18n.T("gui.main.sidebar.discover"), a.page == PageDiscover, false, nil) {
+		a.page = PageDiscover
+	}
 
 	ui.Row(c).AlignItems(ui.Center).Children(func() {
 		a.sectionLabel(i18n.T("gui.main.sidebar.hosts"))

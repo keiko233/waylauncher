@@ -13,9 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/keiko233/waylauncher/internal/compositor"
+	"github.com/keiko233/waylauncher/internal/execx"
 	"github.com/keiko233/waylauncher/internal/profile"
 	"github.com/keiko233/waylauncher/internal/remote"
 	"github.com/keiko233/waylauncher/internal/transport"
@@ -31,6 +33,7 @@ func checkFakeIsolated(o options, def profile.Paths) error {
 		{"--config-dir", o.paths.ConfigDir, def.ConfigDir},
 		{"--legacy-dir", o.paths.LegacyDir, def.LegacyDir},
 		{"--backup-dir", o.paths.BackupDir, def.BackupDir},
+		{"--cache-dir", o.paths.CacheDir, def.CacheDir},
 		{"--log-dir", o.logDir, ""},
 		{"--dock-bundle-dir", o.dockBundleDir, ""},
 		{"--runtime-dir", o.runtimeDir, ""},
@@ -40,6 +43,25 @@ func checkFakeIsolated(o options, def profile.Paths) error {
 		}
 	}
 	return nil
+}
+
+// fakeExec stands in for ssh in application discovery: a scan answers with
+// two canned desktop files; every other call (icon lookup) answers with
+// nothing, so the entries keep generated tiles. Nothing is executed.
+func fakeExec(_ context.Context, _ string, args ...string) (execx.Result, error) {
+	if len(args) > 0 && strings.Contains(args[len(args)-1], "WLEND") {
+		var b strings.Builder
+		b.WriteString("\x01WLENV KDE\n")
+		for _, f := range []struct{ id, body string }{
+			{"org.fake.Editor", "[Desktop Entry]\nType=Application\nName=Fake Editor\nComment=Canned entry (fake transport)\nExec=fake-editor %F\n"},
+			{"org.fake.Terminal", "[Desktop Entry]\nType=Application\nName=Fake Terminal\nExec=fake-terminal --new\nTerminal=false\n"},
+		} {
+			fmt.Fprintf(&b, "\x01WLD 1 %d %s\n%s\n", len(f.body), f.id, f.body)
+		}
+		b.WriteString("\x01WLEND 2\n")
+		return execx.Result{Stdout: []byte(b.String())}, nil
+	}
+	return execx.Result{}, nil
 }
 
 type fakeCompositor struct{}

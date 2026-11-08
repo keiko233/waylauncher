@@ -37,6 +37,18 @@ func TestScreenshots(t *testing.T) {
 			}
 		}
 		shot("apps")
+		h.click("Discover")
+		h.waitText("Kate")
+		for i := 0; i < 300 && h.app.scanOf("vm").iconsBusy; i++ {
+			h.settle()
+		}
+		h.click("Select Kate")
+		shot("discover")
+		h.click("Import selected")
+		h.waitText("Imported 1 application.")
+		shot("discover-imported")
+		h.click("Applications")
+		shot("apps-real-icon")
 		h.click("Open")
 		h.waitText("1 connected")
 		h.click("Running")
