@@ -3,6 +3,7 @@ package dock
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/keiko233/waylauncher/internal/discovery"
 	"image"
 	"image/color"
 	"image/png"
@@ -319,5 +320,62 @@ func TestSyncSignFailureKeepsOldBundle(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(e.dir, "foot.app", "Contents", "Info.plist")); err != nil {
 		t.Fatal("old bundle gone")
+	}
+}
+
+// An icon cached by Discover (a PNG under the cache directory, recorded as
+// the profile's icon path) becomes the bundle's .icns unchanged; an app
+// without a usable icon keeps the generated glyph tile that the window draws
+// from the same Glyph/Tile values.
+func TestCachedDiscoverIconBuildsICNS(t *testing.T) {
+	e := newBundleEnv(t)
+	img := image.NewNRGBA(image.Rect(0, 0, 512, 512))
+	for y := 0; y < 512; y++ {
+		for x := 0; x < 512; x++ {
+			img.Set(x, y, color.NRGBA{20, 40, 220, 255})
+		}
+	}
+	var pb bytes.Buffer
+	png.Encode(&pb, img)
+	cache := discovery.Cache{Dir: filepath.Join(t.TempDir(), "Caches", "Waylauncher")}
+	cached, err := cache.Store("vm", pb.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	imp := AppSpec{ID: "org-kde-kate", Name: "Kate", Glyph: "Ka", Tile: "#1D5FD1", Icon: cached}
+	plain := AppSpec{ID: "org-x", Name: "X", Glyph: "X", Tile: "#B0306A"}
+	res, err := SyncBundles(e.cfg, []AppSpec{imp, plain})
+	if err != nil || len(res.Warnings) != 0 {
+		t.Fatalf("%v %v", err, res.Warnings)
+	}
+	icns := func(app string) []byte {
+		b, err := os.ReadFile(filepath.Join(res.Paths[app], "Contents", "Resources", "AppIcon.icns"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	px := func(b []byte) (r, g, bl uint32) {
+		for off := 8; off < len(b); {
+			l := int(binary.BigEndian.Uint32(b[off+4 : off+8]))
+			if string(b[off:off+4]) == "ic07" {
+				im, err := png.Decode(bytes.NewReader(b[off+8 : off+l]))
+				if err != nil {
+					t.Fatal(err)
+				}
+				r, g, bl, _ = im.At(64, 64).RGBA()
+				return
+			}
+			off += l
+		}
+		t.Fatal("no ic07 chunk")
+		return
+	}
+	if r, g, b := px(icns("org-kde-kate")); b < 0xc000 || r > 0x4000 || g > 0x6000 {
+		t.Errorf("cached PNG not used: %x %x %x", r, g, b)
+	}
+	// The fallback is the tile in the colour the window uses for the same app.
+	if r, _, b := px(icns("org-x")); r < 0x9000 || b < 0x4000 || r < b {
+		t.Errorf("fallback tile colour unexpected: r=%x b=%x", r, b)
 	}
 }

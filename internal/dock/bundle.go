@@ -18,6 +18,7 @@ import (
 
 	"github.com/keiko233/waylauncher/internal/execx"
 	"github.com/keiko233/waylauncher/internal/icon"
+	"github.com/keiko233/waylauncher/internal/iconpath"
 )
 
 // BundleIDPrefix starts the bundle identifier of every generated bundle; the
@@ -240,26 +241,15 @@ func fileHash(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-const maxIconBytes = 16 << 20
-
-// resolveIcon reads the profile's PNG icon. ok is false when there is none.
+// resolveIcon reads the profile's PNG icon (see package iconpath: the window
+// resolves the same value the same way).
 func resolveIcon(a AppSpec, base string) (data []byte, warn string) {
 	if a.Icon == "" {
 		return nil, ""
 	}
-	p := a.Icon
-	if rest, ok := strings.CutPrefix(p, "~/"); ok {
-		home, _ := os.UserHomeDir()
-		p = filepath.Join(home, rest)
-	} else if !filepath.IsAbs(p) && base != "" {
-		p = filepath.Join(base, p)
-	}
-	fi, err := os.Stat(p)
-	switch {
-	case err != nil:
+	p, _, err := iconpath.Resolve(a.Icon, base)
+	if err != nil {
 		return nil, fmt.Sprintf("%s: icon %s: %v; using the generated icon", a.ID, a.Icon, err)
-	case !fi.Mode().IsRegular() || fi.Size() > maxIconBytes:
-		return nil, fmt.Sprintf("%s: icon %s is not a regular PNG file under 16 MB; using the generated icon", a.ID, a.Icon)
 	}
 	data, err = os.ReadFile(p)
 	if err != nil {
