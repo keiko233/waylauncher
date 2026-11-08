@@ -57,7 +57,7 @@ func (a *App) pageApps() {
 		cols = 1
 	}
 
-	a.panelBox(ui.Scroll(c).Grow(1).Margin(0, 12, 12, 12).Padding(22, 18).Gap(14)).Children(func() {
+	ui.Scroll(c).Grow(1).Padding(8, 24, 22).Gap(14).Children(func() {
 		if st.Profiles.Error != "" {
 			a.banner(launcher.KindErr, "The profiles could not be loaded or are invalid. Nothing was changed on disk.\n"+st.Profiles.Error)
 		}
