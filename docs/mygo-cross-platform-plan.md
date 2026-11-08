@@ -1,9 +1,13 @@
 # Cross-platform launcher on MyGo: plan
 
-Status: draft, 2026-11-08. Nothing in this document is implemented yet. The
-installed Swift launcher (`clients/macos/launcher/main.swift`) remains the
-supported version until the MyGo build meets the parity checks in
-[Phase 1](#phase-1--parity-on-macos).
+Status: 2026-11-08. The project is now called **waylauncher** (module
+`github.com/keiko233/waylauncher`, binary and app "Waylauncher"). The macOS
+core and the desktop UI of Phase 1 are implemented (see the README); the checks
+of [section 15](#15-validation-checklist) against the real VM have not been
+done, and nothing from Phases 2 to 5 exists yet. The Swift launcher
+(`clients/macos/launcher/main.swift`, built with
+`python3 scripts/install.py --legacy-swift`) is the legacy version and keeps its
+own paths and `vm200-apps://` scheme.
 
 ## 1. Purpose and decisions
 
@@ -56,10 +60,10 @@ These come from `AGENTS.md` and apply to every phase.
 | Start or reuse Cocoa-Way, wait for readiness | Yes, by polling `cocoa-wayctl --json status` |
 | SSH pre-check (BatchMode, timeouts) | Yes |
 | Launch through bundled `vm200-waypipe` script | Yes; remote side `/usr/local/libexec/vm200-waypipe-app` sets software rendering |
-| Profiles | JSON at `~/.config/vm200-launcher/profiles.json`: `id`, `name`, `target`, `arguments` |
-| Shortcuts | `Linux Terminal.app`, `Linux foot.app`, routed through `vm200-apps://<id>` |
+| Profiles (legacy Swift launcher) | JSON at `~/.config/vm200-launcher/profiles.json`: `id`, `name`, `target`, `arguments` |
+| Shortcuts | `Linux Terminal.app`, `Linux foot.app`, routed through `vm200-apps://<id>` (legacy scheme) |
 | States | connecting / running (transport alive) / disconnected dialog |
-| Logs | `~/Library/Logs/VM200 Launcher/`, 0700 directory, 0600 files, no rotation |
+| Logs (legacy) | `~/Library/Logs/VM200 Launcher/`, 0700 directory, 0600 files, no rotation |
 | One instance per profile | Yes (second click activates Cocoa-Way) |
 | Window focus, discovery, GUI configuration, Windows client | No |
 
@@ -96,7 +100,10 @@ profiles, discovery or the UI.
 ### 4.1 Proposed Go layout
 
 ```
-cmd/linux-apps/            main: app lifecycle, single instance, deep links
+cmd/waylauncher/           main: app lifecycle, CLI (--check-config, launch, status)
+internal/desktop/          MyGo glue: window, tray, notifications, deep links, quit
+internal/launcher/         application core behind the UI (state, editing, diagnostics)
+internal/gui/              the window: views drawn with MyGo's native ui toolkit (no web view)
 internal/profile/          schema, load/validate, JSON→TOML migration, backups
 internal/remote/           SSH probe, remote command quoting, host-key policy
 internal/discovery/        remote .desktop scan, parsing, icon fetch/convert
@@ -109,7 +116,6 @@ internal/compositor/       Compositor interface
 internal/compositor/cocoaway   control-socket client (macOS)
 internal/compositor/wslg       WSL availability checks (Windows)
 internal/shortcut/         .app bundles (macOS), .lnk + .ico (Windows), .desktop (Linux)
-internal/ui/               views: sidebar, app grid, instance list, settings, logs
 scripts/                   install script (still the build entry point)
 ```
 
@@ -197,13 +203,13 @@ into profiles.
 
 ### 5.3 Migration from `profiles.json`
 
-1. If `~/.config/vm200-launcher/profiles.toml` exists, use it; otherwise read
-   `profiles.json`.
+1. If `~/.config/waylauncher/profiles.toml` exists, use it; otherwise read the
+   legacy `~/.config/vm200-launcher/profiles.json` (read only).
 2. Convert each entry into a host (deduplicated by `target`) and an app with
    `transport.macos = "waypipe"`.
 3. Write the TOML file with mode 0600, created exclusively (no overwrite).
 4. Keep `profiles.json` in place and copy it to
-   `~/Library/Application Support/VM200 Launcher/Backups/<timestamp>/`.
+   `~/Library/Application Support/Waylauncher/Backups/<timestamp>/`.
 5. `--check-config` validates the TOML file, and reports migration results.
 
 The Swift launcher keeps reading `profiles.json` during the transition, so a
@@ -318,15 +324,41 @@ waypipe --no-gpu --compress=lz4 --threads=2 ssh \
 - Starting the compositor: `open` on `~/Applications/Cocoa-Way.app`, then poll
   `status` until it answers or the deadline passes.
 
-### 8.2 Shortcuts and identity
+### 8.2 Shortcuts and identity: the Dock helper
 
-- Generated per-app `.app` bundles in `~/Applications/Linux Apps/`, each a
-  small executable that opens `vm200-apps://launch/<id>`, with an `.icns`
-  built from the remote icon.
-- Bundles are regenerated only on request; existing ones are backed up first.
-- These give each Linux app its own Dock, Launchpad and Spotlight entry
-  point. The running windows still belong to Cocoa-Way, so Command-Tab shows
-  Cocoa-Way, not the Linux application.
+Implemented in `internal/dock`, `cmd/waylauncher-dock-helper` and
+`internal/desktop/dock.go`.
+
+- One generated bundle per profile in `~/Applications/Waylauncher Apps/`:
+  bundle id `com.keiko233.waylauncher.app.<id>`, `CFBundleName` = profile
+  name, `.icns` built in Go from the profile `icon` (a local PNG path) or the
+  generated glyph tile, ad-hoc signed. The executable is
+  `waylauncher-dock-helper`, a windowless regular MyGo app (no cgo, no
+  purego code of our own; MyGo already provides the reopen and quit hooks).
+  The Dock identity comes from the bundle, so each bundle's executable is its
+  own process. A bundle is rebuilt only when name, icon, helper binary or
+  Waylauncher's location changed; the old one, and the bundle of a removed
+  app, goes to `<backup>/<timestamp>/Waylauncher Apps/`.
+- One helper process per application, started by Waylauncher (`open -g -a`)
+  while the application has a live instance and ended when the count is 0.
+  Setting: "Show running Linux apps in the Dock" (default on).
+- IPC: Unix socket in a 0700 runtime directory (`$TMPDIR/waylauncher/helper.sock`,
+  under the 104-byte limit), one JSON object per line. Helper to app:
+  `hello{app,launch}`, `reopen` (Dock click), `quit-request` (Dock menu
+  Quit). App to helper: `count{n}`, `exit`. A closed socket makes the helper
+  exit, so a crashed Waylauncher leaves no helpers.
+- The helper decides nothing: Dock click focuses the most recent instance
+  (existing focus path, Cocoa-Way fallback) and never starts one; Quit is
+  cancelled in the helper and becomes the existing Stop confirmation for all
+  instances of the app; opening the bundle while nothing runs starts
+  Waylauncher through the deep link if needed and launches the app. A
+  disconnected instance never restarts anything.
+- Honest limits: the windows still belong to Cocoa-Way. Its own Dock icon
+  stays, Command-Tab shows Cocoa-Way, the helper's Dock menu lists no
+  windows, and Dock click cannot raise one specific window. The running dot
+  tracks the Waylauncher instance (the transport process), not a mapped
+  window. Log out or restart while a helper holds a Quit pending is
+  governed by Waylauncher's own quit policy, which tells helpers to leave.
 
 ### 8.3 Upstream requests to Cocoa-Way
 
@@ -340,13 +372,16 @@ patched locally:
    can show `window-shown` and detect a normal close.
 4. Longer term: per-application window ownership so Linux apps get their own
    Dock and Command-Tab identity.
+5. An option to hide Cocoa-Way's own Dock icon (accessory activation policy).
+   With the per-application helpers of 8.2 this removes the duplicate icon;
+   today it stays next to them. Requested upstream, not patched locally.
 
 ## 9. Windows backend
 
 - Prerequisite checks with clear messages: Xpra client installed; for wprs,
   WSL2 available and WSLg enabled.
 - Start Menu shortcuts: `.lnk` files under the user's Start Menu folder in a
-  `Linux Apps` subfolder, target `linux-apps.exe launch <id>` or the deep
+  `Linux Apps` subfolder, target `waylauncher.exe launch <id>` or the deep
   link; `.ico` built from the remote icon.
 - Windows are drawn by the Xpra client (or by WSLg for wprs). Taskbar grouping
   and Alt-Tab come from those clients and are recorded as observed, not
@@ -377,13 +412,31 @@ patched locally:
 
 ## 11. UI
 
-- Window: sidebar (glass plugin) with Applications, Running, Hosts, Settings,
-  Logs; app grid with icons; search.
-- Running view: one row per instance with state, host, transport, start time,
-  and actions (Activate, Detach/Reattach where supported, Stop, Open log).
-- Tray/menu bar: recent and pinned apps, running instances, open window, quit.
-- Settings: hosts, apps (command, cwd, env, icon, transport per platform),
-  discovery, shortcut generation, all with validation messages.
+The window is drawn by MyGo's own native `ui` toolkit (GPU, no web view, no
+HTML, no JavaScript, no frontend build) with the window's Liquid Glass
+material behind the sidebar. `internal/gui` turns the state of
+`internal/launcher` into elements and user input into service calls;
+`internal/desktop` owns the window itself, tray, notifications, deep links and
+the quit policy.
+
+- Window: edge-to-edge glass sidebar (Applications, Running with a count
+  badge, Discover disabled as "Coming soon", hosts with their last check,
+  Settings, a Cocoa-Way status card), a unified toolbar title and flat content
+  panels (radius 12, no stroke) over the window background. Sheets use radius
+  16. Application cards keep a 1 px border. Light and dark palettes follow
+  the Theme setting.
+- Applications: grid of cards with status chips, Open / New window / Start
+  again and a ⋯ menu (Open last log, Edit…, Pin to menu bar, Remove…).
+- Running view: one row per instance with state, start time and actions
+  (Focus window, Log, Start again, Dismiss, Stop… after confirmation) and a
+  detail pane with a live log tail. Detach/Reattach appears only with a
+  persistent transport.
+- Hosts: diagnostics with Run checks, Cocoa-Way status, and host-key
+  guidance (Copy ssh command). Application and host editors validate inline
+  and show the exact local and remote commands.
+- Tray/menu bar: pinned apps, running instances, open window, quit.
+- Settings: theme, glass, quitting, multi-instance reopen, "No child
+  processes", disconnect notifications, menu bar item, logs kept.
 - Notifications: launch failure, disconnect, detached session available.
 - Wording rule: "Connected" for transport-running; "Window open" only when
   reported.
@@ -404,7 +457,7 @@ Effort is for one developer and excludes upstream Cocoa-Way work.
 ### Phase 0 — Setup (2–3 days)
 
 - Go 1.27.3+, MyGo CLI, new module beside the Swift client
-  (`clients/mygo/`).
+  (the module root, `cmd/waylauncher`).
 - CI build for macOS and Windows.
 - Exit: an empty MyGo tray app builds and runs on both systems.
 
@@ -412,9 +465,9 @@ Effort is for one developer and excludes upstream Cocoa-Way work.
 
 - Profile loader with JSON→TOML migration and `--check-config`.
 - Cocoa-Way socket client; Waypipe transport; supervisor with today's rules.
-- Tray menu, simple window, deep link `vm200-apps://`, the two default
+- Tray menu, simple window, deep link `waylauncher://launch/<id>`, the two default
   shortcuts.
-- `scripts/install-vm200-launcher.py` builds the Go app, keeps backups.
+- `scripts/install.py` builds the Go app and keeps backups of replaced bundles.
 - Exit: every item of the validation checklist (section 15) that passes with
   the Swift launcher passes with the MyGo build. Then the Swift launcher is
   retired (kept in git history).
@@ -450,8 +503,8 @@ Total: about 9–12 weeks for Phases 0–3 and 5; 10–14 weeks with Phase 4.
 
 ## 14. Open questions
 
-1. Deep-link scheme: keep `vm200-apps://` or move to a neutral name with the
-   old one as an alias?
+1. Deep-link scheme: decided, `waylauncher://launch/<id>`; the Swift launcher
+   keeps `vm200-apps://` until it is retired.
 2. Should one Xpra session per host be shared by all apps, or one per app
    (simpler lifecycle, more resources)?
 3. Does the launcher bundle the Xpra Windows client or require a separate
@@ -489,7 +542,7 @@ claim an item as supported until it passes.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| MyGo API churn (fast-moving project) | Rework on upgrades | Pin the version; keep UI code in `internal/ui` |
+| MyGo API churn (fast-moving project) | Rework on upgrades | Pin the version; keep UI code in `internal/gui` |
 | Xpra Wayland server not ready | Wayland-only apps missing on Windows | Mark them; offer wprs via WSLg |
 | Cocoa-Way control protocol changes | macOS backend breaks | Check `protocol`; keep the client small and tested |
 | No window events upstream | Can't show real window state or precise focus | Label states honestly; pursue upstream requests |
