@@ -31,10 +31,11 @@ Runtime requirements are those of the Swift launcher: `~/Applications/Cocoa-Way.
 
 ## Using it
 
-The interface is drawn with MyGo's native `ui` toolkit (`internal/gui`) over the window's Liquid Glass material; it contains no web view. Open Waylauncher. The sidebar has Applications, Running, Discover (disabled: "Coming soon"), your hosts, and Settings.
+The interface is drawn with MyGo's native `ui` toolkit (`internal/gui`) over the window's Liquid Glass material; it contains no web view. Open Waylauncher. The sidebar has Applications, Running, Discover, your hosts, and Settings.
 
 - **Applications**: one card per profile with a status chip. *Open* starts the application; if a single-instance application is already running, it focuses it instead. Multiple-instance applications follow Settings, and *New window* always starts another. The ⋯ menu has Start again, Open last log, Edit…, Pin to menu bar and Remove….
 - **Running**: every instance with its state, host, transport, command and a live log tail. Actions: Focus window, Stop… (confirmation: it ends the program on the host, unsaved work is lost, it is not restarted), Log, Start again, Dismiss, Clear ended.
+- **Discover**: lists the applications installed on a host (desktop files from the XDG application folders, read over SSH in BatchMode with one read-only script; nothing is started or changed on the host). Opening the page scans the chosen host once; *Scan* / *Scan again* repeat it, and *Cancel* stops a running scan. Each row shows the icon, name and comment, an *Imported* badge when a profile with `source = "discovered:<desktop-id>"` already exists on that host, and a checkbox. *Import selected* creates profiles (single instance, the entry's name, command and working folder, this host) through the normal atomic save with a backup of the previous `profiles.toml`; profile IDs are made unique. A re-scan never overwrites or changes a profile you already imported or edited. An untrusted or changed host key is reported with *Copy ssh command*; the app never accepts host keys.
 - **Hosts**: *Run checks* tests SSH (BatchMode), the host key, remote `waypipe`, the launch wrapper and local `waypipe`, and shows Cocoa-Way's status. A host-key problem is reported with a *Copy ssh command* button; the app never accepts host keys itself.
 - **New app / Edit…**: name, ID, host, command as separate argument chips, working folder, environment table, single or multiple instances, and a preview of the exact local and remote commands built by the same code that launches them. Problems are shown inline and block saving. Saving writes `profiles.toml` atomically (temporary file, then rename, mode 0600) after copying the previous file to the backup directory.
 - **Menu bar item** (Settings › Show in menu bar): pinned applications, running instances (Focus window, Open log, Stop…), Open Waylauncher, Diagnostics…, Quit.
@@ -42,7 +43,7 @@ The interface is drawn with MyGo's native `ui` toolkit (`internal/gui`) over the
 - **Deep links**: `waylauncher://launch/<profile id>` opens an existing profile. Only IDs of existing profiles are accepted; a URL can never supply a command or host.
 - **Quit**: by default Waylauncher stops every running instance and quits. Settings › Quitting › *Ask first* shows a confirmation when instances are live. Closing the window only hides it.
 
-Command-line use of the same binary (`~/Applications/Waylauncher.app/Contents/MacOS/waylauncher`): `--check-config [--dry-run] [--json]`, `launch <id>`, `status`; see `--help`. `--config-dir`, `--legacy-dir`, `--backup-dir`, `--log-dir`, `--dock-bundle-dir` and `--runtime-dir` redirect every path, which is how to try it without touching your real configuration.
+Command-line use of the same binary (`~/Applications/Waylauncher.app/Contents/MacOS/waylauncher`): `--check-config [--dry-run] [--json]`, `launch <id>`, `status`; see `--help`. `--config-dir`, `--legacy-dir`, `--backup-dir`, `--log-dir`, `--cache-dir`, `--dock-bundle-dir` and `--runtime-dir` redirect every path, which is how to try it without touching your real configuration.
 
 ## Dock icons
 
@@ -60,7 +61,7 @@ What this is not: the windows still belong to Cocoa-Way. Its own Dock icon stays
 
 ## Development: fake transport
 
-`WAYLAUNCHER_FAKE_TRANSPORT=1` (development only) replaces Cocoa-Way, SSH and Waypipe with stand-ins: the "transport" is `sleep 600`, nothing remote is ever started. It refuses to run unless `--config-dir`, `--legacy-dir`, `--backup-dir`, `--log-dir`, `--dock-bundle-dir` and `--runtime-dir` are all given (none may be the real default), and it disables the helper's ability to open the installed Waylauncher.app. A running fake instance can be driven without clicking: `waylauncher <same flags> dev launch|stop|focus|confirm|dock|quit ...` (see `internal/desktop/dev.go`). Never use it with your real directories.
+`WAYLAUNCHER_FAKE_TRANSPORT=1` (development only) replaces Cocoa-Way, SSH and Waypipe with stand-ins: the "transport" is `sleep 600`, nothing remote is ever started (Discover answers with two canned entries). It refuses to run unless `--config-dir`, `--legacy-dir`, `--backup-dir`, `--log-dir`, `--cache-dir`, `--dock-bundle-dir` and `--runtime-dir` are all given (none may be the real default), and it disables the helper's ability to open the installed Waylauncher.app. A running fake instance can be driven without clicking: `waylauncher <same flags> dev launch|stop|focus|confirm|dock|quit ...` (see `internal/desktop/dev.go`). Never use it with your real directories.
 
 ## Files
 
@@ -70,11 +71,16 @@ What this is not: the windows still belong to Cocoa-Way. Its own Dock icon stays
 | Settings | `~/.config/waylauncher/settings.toml` |
 | Backups of replaced profiles and bundles | `~/Library/Application Support/Waylauncher/Backups/<timestamp>/` |
 | Per-application Dock bundles | `~/Applications/Waylauncher Apps/` (generated; replaced ones go to the backup directory) |
+| Cached application icons (Discover) | `~/Library/Caches/Waylauncher/<host id>/<hash>.png` (regenerable, files 0600; `--cache-dir`) |
 | Dock helper socket | `$TMPDIR/waylauncher/helper.sock` (mode 0600 in a 0700 directory) |
 | Logs | `~/Library/Logs/Waylauncher/` (directory 0700, files 0600, last N per application) |
 | Legacy profiles (read only) | `~/.config/vm200-launcher/profiles.json` |
 
 On first start without a `profiles.toml`, Waylauncher converts the legacy `profiles.json`: it is copied to the backup directory first, never modified, moved or deleted, and the Swift launcher keeps using it. `profiles.toml` is rewritten from the in-memory profile on every save, so comments in a hand-edited file are not preserved (the backup keeps them). Do not store credentials in profiles.
+
+## Icons
+
+A profile's `icon` is a local PNG path (`~/` and paths relative to the config directory work). The window (Applications cards, Running rows, the edit sheet) and the Dock bundle resolve it with the same code (`internal/iconpath`: regular file, at most 16 MB; the window also refuses images over 4096 px), so an application has the same icon in both. Imported applications point at the PNG Discover cached; the Dock `.icns` is built from that file. With no icon, or one that cannot be loaded, both show the same generated tile (glyph and colour from the profile). The window re-reads an icon file when its modification time changes. The editor keeps the `icon` value unchanged on save; there is no field to change it yet.
 
 ## States and what they mean
 
@@ -91,7 +97,7 @@ Implemented and covered by `go test ./...`: profile schema, validation, atomic s
 
 Verified on this machine: `go vet`, `gofmt`, the build and ad-hoc signing, `--check-config`, the app starting from the installed bundle with a temporary configuration (native window opening in light and dark, migration into a temporary directory), the `waylauncher` URL scheme being registered, and every page and sheet of the native UI rendered in light and dark and exercised by view tests (`go test ./internal/gui`; set `WAYLAUNCHER_SHOTS=<dir>` to write screenshots).
 
-**Not verified** (needs a person at the screen and the real VM): clicking through every control in the real window; launching Konsole and foot and the full validation checklist of the plan; window glass in light mode and with *Clear*; the tray menu and its submenus; notifications (MyGo has no notification actions, so a click opens the Running view where *Start again* and *Open log* are); the Quit confirmation with live instances; Local Network permission behaviour; the Dock helpers on the real VM and the Dock menu's Quit confirmation dialog (checked with the fake transport only; the Dock icon and running dot were seen in a screenshot); starting Waylauncher from a helper when it is not running; Discover and import (not implemented); Windows and Xpra/wprs (not implemented).
+**Not verified** (needs a person at the screen and the real VM): clicking through every control in the real window; launching Konsole and foot and the full validation checklist of the plan; window glass in light mode and with *Clear*; the tray menu and its submenus; notifications (MyGo has no notification actions, so a click opens the Running view where *Start again* and *Open log* are); the Quit confirmation with live instances; Local Network permission behaviour; the Dock helpers on the real VM and the Dock menu's Quit confirmation dialog (checked with the fake transport only; the Dock icon and running dot were seen in a screenshot); starting Waylauncher from a helper when it is not running; Discover, import and icon fetching against the real VM (covered by tests with fake ssh output only; the scan script and icon lookup have never run on a real host), and the real-icon Dock bundle seen in the Dock; Windows and Xpra/wprs (not implemented).
 
 ## Remove or roll back
 

@@ -410,6 +410,15 @@ patched locally:
    desktop file never creates or runs a profile on its own, and re-scans show
    changes without overwriting user edits.
 
+Status (2026-11-08): steps 1-3, 5 (icons: SVG and theme lookup, normalised
+512 px PNG cache under `--cache-dir`) and 6 are implemented in
+`internal/discovery` and `internal/launcher/discover.go`, with the Discover
+page in the window. Step 4's known-list hint sets `display = "wayland"` on
+import (informational for now). Import records `source =
+"discovered:<desktop-id>"`; a re-scan marks those entries "Imported" and
+never touches the profile. `.ico` generation is not done. Verified only with
+fake ssh output and view tests; not yet run against the real VM.
+
 ## 11. UI
 
 The window is drawn by MyGo's own native `ui` toolkit (GPU, no web view, no
@@ -420,11 +429,14 @@ material behind the sidebar. `internal/gui` turns the state of
 the quit policy.
 
 - Window: edge-to-edge glass sidebar (Applications, Running with a count
-  badge, Discover disabled as "Coming soon", hosts with their last check,
+  badge, Discover, hosts with their last check,
   Settings, a Cocoa-Way status card), a unified toolbar title and flat content
   panels (radius 12, no stroke) over the window background. Sheets use radius
   16. Application cards keep a 1 px border. Light and dark palettes follow
   the Theme setting.
+- Discover: host picker, Scan (once automatically on first opening, cancellable,
+  read-only), list with icon, name, comment and "Imported" badge, checkboxes,
+  Import selected.
 - Applications: grid of cards with status chips, Open / New window / Start
   again and a ⋯ menu (Open last log, Edit…, Pin to menu bar, Remove…).
 - Running view: one row per instance with state, start time and actions
