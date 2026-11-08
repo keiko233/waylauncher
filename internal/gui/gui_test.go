@@ -163,6 +163,27 @@ func TestApplicationsPage(t *testing.T) {
 	}
 }
 
+func TestMinimumWindowWithAccessibilityPreferences(t *testing.T) {
+	h := newHarness(t, sample, true)
+	h.tt.SetSize(900, 560)
+	h.tt.SetPreferences(ui.Preferences{HighContrast: true, ReduceTransparency: true})
+	h.settle()
+	h.click("Open")
+	h.waitText("1 connected")
+	h.click("Settings")
+	if !h.tt.HasText("Theme") {
+		t.Fatal("settings are unavailable at the minimum window size")
+	}
+	h.click("Light")
+	for i := 0; i < 200 && h.svc.Settings().Theme != "light"; i++ {
+		h.settle()
+		time.Sleep(10 * time.Millisecond)
+	}
+	if h.svc.Settings().Theme != "light" {
+		t.Error("theme change was not saved")
+	}
+}
+
 func TestOpenShowsConnectedNotWindow(t *testing.T) {
 	h := newHarness(t, sample, false)
 	h.click("Open")
@@ -278,6 +299,8 @@ func TestSettingsPageSaves(t *testing.T) {
 	if !h.svc.Settings().ShowRunningInDock {
 		t.Error("Dock icons should default to on")
 	}
+	h.tt.Scroll(500, 500, 0, 450)
+	h.settle()
 	h.click("Ask first")
 	for i := 0; i < 200 && h.svc.Settings().QuitBehavior != "ask"; i++ {
 		h.settle()

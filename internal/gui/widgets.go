@@ -14,7 +14,7 @@ const (
 	btnDangerText
 )
 
-// button is a capsule button, 28 high (32 when large).
+// button uses the rounded rectangular shape of standard macOS controls.
 func (a *App) button(label string, kind btnKind) ui.Element {
 	var b ui.Element
 	if kind == btnPrimary {
@@ -22,7 +22,7 @@ func (a *App) button(label string, kind btnKind) ui.Element {
 	} else {
 		b = ui.Button(a.c, label)
 	}
-	b.Height(28).Padding(0, 13).Radius(14).FontSize(12.5).FontWeight(500)
+	b.Height(30).Padding(0, 14).Radius(7).FontSize(12.5).FontWeight(500)
 	if kind == btnDangerText {
 		b.TextColor(a.p.dangerText)
 	}
@@ -34,7 +34,7 @@ func (a *App) keyedButton(key, label string, kind btnKind) ui.Element {
 	return a.button(label, kind)
 }
 
-// iconButton is a primary capsule button with a leading icon.
+// iconButton is a button with a leading icon.
 func (a *App) iconButton(icon *ui.SVG, label string, kind btnKind) ui.Element {
 	var b ui.Element
 	if kind == btnPrimary {
@@ -42,7 +42,7 @@ func (a *App) iconButton(icon *ui.SVG, label string, kind btnKind) ui.Element {
 	} else {
 		b = ui.Button(a.c, "")
 	}
-	b.Label(label).Height(28).Padding(0, 13).Radius(14).Gap(6).FontSize(12.5).FontWeight(500)
+	b.Label(label).Height(30).Padding(0, 14).Radius(7).Gap(6).FontSize(12.5).FontWeight(500)
 	b.Children(func() {
 		ui.Icon(a.c, icon).FontSize(12)
 		ui.Text(a.c, label).SingleLine()
@@ -90,17 +90,17 @@ func (a *App) panelBox(e ui.Element) ui.Element {
 }
 
 func (a *App) sectionLabel(s string) {
-	ui.Text(a.c, s).FontSize(11).FontWeight(600).TextColor(a.p.muted).Padding(14, 10, 4)
+	ui.Text(a.c, s).FontSize(11).FontWeight(600).TextColor(a.p.muted).Padding(18, 9, 6)
 }
 
 // header is the unified toolbar title: title and subtitle on the left,
 // controls on the right, draggable.
 func (a *App) header(title, sub string, controls func()) {
 	bar := a.c.TitleBar()
-	ui.Row(a.c).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Gap(10).
-		Padding(0, 16+bar.Right, 0, 24).DragWindow().Children(func() {
-		ui.Column(a.c).Gap(2).MinWidth(0).Shrink(1).Children(func() {
-			ui.Text(a.c, title).FontSize(17).Bold().SingleLine()
+	ui.Row(a.c).Height(headerHeight).Shrink(0).AlignItems(ui.Center).Gap(12).Background(a.p.toolbar).
+		Padding(0, 24+bar.Right, 0, 28).DragWindow().Children(func() {
+		ui.Column(a.c).Gap(4).MinWidth(0).Shrink(1).Children(func() {
+			ui.Text(a.c, title).FontSize(20).Bold().SingleLine()
 			if sub != "" {
 				a.muted(sub, 12.5).SingleLine()
 			}
@@ -110,6 +110,7 @@ func (a *App) header(title, sub string, controls func()) {
 			controls()
 		}
 	})
+	ui.Box(a.c).Height(1).Shrink(0).Background(a.p.hairSoft)
 }
 
 // banner is a coloured message strip.

@@ -14,15 +14,15 @@ type tone struct{ bg, fg ui.Color }
 type palette struct {
 	dark bool
 
-	window, sidebarSolid, panel, card, cardLine ui.Color
-	hair, hairSoft, hover                       ui.Color
-	text, text2, muted, chip, chipText          ui.Color
-	field, fieldLine                            ui.Color
-	accent, accentText, navOn, navOnText        ui.Color
-	danger, dangerText                          ui.Color
-	note, codeBg, codeText, codeLabel           ui.Color
-	glassFill, glassLine, scrim                 ui.Color
-	rowSel, badField                            ui.Color
+	window, sidebarSolid, toolbar, panel, card, cardLine ui.Color
+	hair, hairSoft, hover                                ui.Color
+	text, text2, muted, chip, chipText                   ui.Color
+	field, fieldLine                                     ui.Color
+	accent, accentText, navOn, navOnText                 ui.Color
+	danger, dangerText                                   ui.Color
+	note, codeBg, codeText, codeLabel                    ui.Color
+	glassFill, glassLine, scrim                          ui.Color
+	rowSel, badField                                     ui.Color
 
 	ok, warn, err, idle, info tone
 
@@ -33,14 +33,14 @@ func newPalette(dark bool) *palette {
 	if dark {
 		return &palette{
 			dark:   true,
-			window: ui.Hex("#141519"), sidebarSolid: ui.Hex("#1E2026"), panel: ui.Hex("#1D1F25"),
-			card: ui.Hex("#24262C"), cardLine: ui.RGBA(255, 255, 255, 0.07),
+			window: ui.Hex("#25292A"), sidebarSolid: ui.Hex("#20292C"), toolbar: ui.Hex("#292D2E"), panel: ui.Hex("#2D3132"),
+			card: ui.Hex("#303435"), cardLine: ui.RGBA(255, 255, 255, 0.035),
 			hair: ui.RGBA(255, 255, 255, 0.08), hairSoft: ui.RGBA(255, 255, 255, 0.06), hover: ui.RGBA(255, 255, 255, 0.07),
 			text: ui.Hex("#F2F2F5"), text2: ui.Hex("#D6D7DD"), muted: ui.Hex("#A6A7B0"),
 			chip: ui.RGBA(255, 255, 255, 0.08), chipText: ui.Hex("#D6D7DD"),
-			field: ui.Hex("#2E3038"), fieldLine: ui.RGBA(255, 255, 255, 0.14),
-			accent: ui.Hex("#2F7BEF"), accentText: ui.Hex("#FFFFFF"),
-			navOn: ui.RGBA(64, 140, 255, 0.24), navOnText: ui.Hex("#CFE2FF"),
+			field: ui.Hex("#41494B"), fieldLine: ui.RGBA(255, 255, 255, 0.14),
+			accent: ui.Hex("#087DF5"), accentText: ui.Hex("#FFFFFF"),
+			navOn: ui.Hex("#087DF5"), navOnText: ui.Hex("#FFFFFF"),
 			danger: ui.Hex("#D8392C"), dangerText: ui.Hex("#FF8A82"),
 			note: ui.RGBA(255, 255, 255, 0.05), codeBg: ui.Hex("#101216"), codeText: ui.Hex("#D7DAE0"), codeLabel: ui.Hex("#8B8F9A"),
 			glassFill: ui.RGBA(255, 255, 255, 0.09), glassLine: ui.RGBA(255, 255, 255, 0.12), scrim: ui.RGBA(0, 0, 0, 0.5),
@@ -54,14 +54,14 @@ func newPalette(dark bool) *palette {
 		}
 	}
 	return &palette{
-		window: ui.Hex("#F4F5F8"), sidebarSolid: ui.Hex("#ECEEF3"), panel: ui.Hex("#FFFFFF"),
-		card: ui.Hex("#FCFCFD"), cardLine: ui.Hex("#E6E7EB"),
+		window: ui.Hex("#F2F2F0"), sidebarSolid: ui.Hex("#E7EBEC"), toolbar: ui.Hex("#F7F7F5"), panel: ui.Hex("#FFFFFF"),
+		card: ui.Hex("#FFFFFF"), cardLine: ui.RGBA(0, 0, 0, 0.035),
 		hair: ui.Hex("#ECEDF0"), hairSoft: ui.Hex("#F0F1F3"), hover: ui.RGBA(0, 0, 0, 0.05),
 		text: ui.Hex("#1C1C1E"), text2: ui.Hex("#3A3A40"), muted: ui.Hex("#5B5B63"),
 		chip: ui.Hex("#F1F2F4"), chipText: ui.Hex("#3A3A40"),
 		field: ui.Hex("#FFFFFF"), fieldLine: ui.Hex("#D6D8DD"),
-		accent: ui.Hex("#0060DF"), accentText: ui.Hex("#FFFFFF"),
-		navOn: ui.RGBA(0, 96, 223, 0.12), navOnText: ui.Hex("#0049AA"),
+		accent: ui.Hex("#007AFF"), accentText: ui.Hex("#FFFFFF"),
+		navOn: ui.Hex("#007AFF"), navOnText: ui.Hex("#FFFFFF"),
 		danger: ui.Hex("#C4271B"), dangerText: ui.Hex("#B42318"),
 		note: ui.Hex("#F4F6FA"), codeBg: ui.Hex("#16181D"), codeText: ui.Hex("#D7DAE0"), codeLabel: ui.Hex("#8B8F9A"),
 		glassFill: ui.RGBA(255, 255, 255, 0.72), glassLine: ui.RGBA(0, 0, 0, 0.08), scrim: ui.RGBA(20, 24, 36, 0.28),

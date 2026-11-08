@@ -35,8 +35,9 @@ type Nav struct {
 }
 
 const (
-	sidebarWidth   = 236
-	titleBarHeight = 52
+	sidebarWidth   = 248
+	titleBarHeight = 62
+	headerHeight   = 82
 )
 
 type toastMsg struct {
@@ -194,6 +195,16 @@ func (a *App) View(c *ui.Context) {
 	sys := c.Theme()
 	a.c = c
 	a.p = newPalette(sys.Dark)
+	// Use the system accent, including its inactive-window appearance.
+	a.p.accent, a.p.accentText = sys.Accent, sys.AccentText
+	a.p.navOn, a.p.navOnText = sys.Accent, sys.AccentText
+	if !c.WindowActive() && sys.InactiveAccent != ui.Transparent {
+		a.p.navOn = sys.InactiveAccent
+	}
+	if c.Preferences().HighContrast {
+		a.p.text, a.p.text2, a.p.muted = sys.Text, sys.Text, sys.TextMuted
+		a.p.hair, a.p.hairSoft, a.p.fieldLine = sys.Border, sys.Border, sys.Border
+	}
 	a.loadCocoaIcon()
 	a.vibrant = c.Vibrancy() && !c.Preferences().ReduceTransparency
 	if a.vibrant {
@@ -206,8 +217,12 @@ func (a *App) View(c *ui.Context) {
 	}
 	ui.Themed(c, a.p.theme(sys)).Fill().Background(ui.Transparent).Children(func() {
 		ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-			side := ui.Column(c).Width(sidebarWidth).Shrink(0).Padding(0, 10, 12)
-			if !a.vibrant {
+			side := ui.Column(c).Width(sidebarWidth).Shrink(0).Padding(0, 12, 14)
+			if a.vibrant && a.p.dark {
+				side.Background(ui.RGBA(32, 41, 44, 0.55))
+			} else if a.vibrant {
+				side.Background(ui.RGBA(231, 235, 236, 0.55))
+			} else {
 				side.Background(a.p.sidebarSolid)
 			}
 			side.Children(a.sidebar)

@@ -16,7 +16,7 @@ func (a *App) saveSettings(s profile.Settings) {
 // group is a titled card of rows.
 func (a *App) group(title string, rows func()) {
 	ui.Text(a.c, title).FontSize(12).FontWeight(600).TextColor(a.p.muted).Margin(18, 4, 8)
-	ui.Column(a.c).Radius(12).Background(a.p.card).Padding(4, 18).Dividers(1, a.p.hair).Gap(1).Children(rows)
+	ui.Column(a.c).Radius(14).Background(a.p.card).Padding(4, 20).Dividers(1, a.p.hair).Gap(1).Children(rows)
 }
 
 // setRow is a label and description with a control at the end (or below).
@@ -72,9 +72,9 @@ func (a *App) pageSettings() {
 		}
 	}
 
-	ui.Scroll(c).Grow(1).MinHeight(0).Padding(0, 16, 18).Children(func() {
-		ui.Row(c).Gap(18).AlignItems(ui.Start).Children(func() {
-			ui.Column(c).Grow(1).Basis(0).MinWidth(0).Children(func() {
+	ui.Scroll(c).Grow(1).MinHeight(0).Padding(0, 28, 28).Children(func() {
+		ui.Row(c).Justify(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MaxWidth(720).MinWidth(0).Children(func() {
 				a.group(i18n.T("gui.forms.settings.appearance"), func() {
 					a.setRow(i18n.T("settings.language.title"), i18n.T("settings.language.help"), func() {
 						if ui.Select(c, &langSel, langLabels).Label(i18n.T("settings.language.title")).Width(140).Changed() {
@@ -119,8 +119,6 @@ func (a *App) pageSettings() {
 						}
 					}, true)
 				})
-			})
-			ui.Column(c).Grow(1).Basis(0).MinWidth(0).Children(func() {
 				a.group(i18n.T("gui.forms.settings.quitting"), func() {
 					a.setRow(i18n.T("gui.forms.settings.stillRunning"), i18n.T("gui.forms.settings.stillRunningHelp"), func() {
 						ui.RadioGroup(c, func() {

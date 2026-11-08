@@ -1,14 +1,13 @@
 package gui
 
 import (
-	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
 
 	"github.com/keiko233/waylauncher/internal/i18n"
 )
 
 func (a *App) navRow(key string, icon *ui.SVG, iconColor ui.Color, label string, on, disabled bool, trail func()) bool {
-	b := ui.ButtonBase(a.c.Key(key)).Height(32).Padding(0, 10).Gap(9).Radius(9).AlignItems(ui.Center).
+	b := ui.ButtonBase(a.c.Key(key)).Height(38).Padding(0, 9).Gap(10).Radius(9).AlignItems(ui.Center).
 		Label(label).Disabled(disabled)
 	switch {
 	case on:
@@ -17,7 +16,9 @@ func (a *App) navRow(key string, icon *ui.SVG, iconColor ui.Color, label string,
 		b.Background(a.p.hover)
 	}
 	b.Children(func() {
-		ui.Icon(a.c, icon).FontSize(16).TextColor(iconColor).Shrink(0)
+		ui.Box(a.c).Size(24, 24).Radius(6).Background(iconColor).Center().Shrink(0).Children(func() {
+			ui.Icon(a.c, icon).FontSize(15).TextColor(ui.Hex("#FFFFFF"))
+		})
 		t := ui.Text(a.c, label).Grow(1).SingleLine().FontSize(13)
 		if on {
 			t.TextColor(a.p.navOnText).FontWeight(600)
@@ -38,14 +39,18 @@ func (a *App) navRow(key string, icon *ui.SVG, iconColor ui.Color, label string,
 func (a *App) sidebar() {
 	c, p, st := a.c, a.p, &a.st
 	ui.Box(c).Height(titleBarHeight).Shrink(0).DragWindow()
-	if ui.SearchField(c, &a.query).Label(i18n.T("gui.main.sidebar.search.label")).Placeholder(i18n.T("gui.main.sidebar.search.placeholder")).Changed() {
+	if ui.SearchField(c, &a.query).Height(32).Radius(16).Label(i18n.T("gui.main.sidebar.search.label")).Placeholder(i18n.T("gui.main.sidebar.search.placeholder")).Changed() {
 		a.page = PageApps
 	}
 	ui.Box(c).Height(8)
 
 	a.sectionLabel(i18n.T("gui.main.sidebar.library"))
 	if a.navRow("nav-apps", icApps, p.icApps, i18n.T("gui.main.sidebar.apps"), a.page == PageApps, false, func() {
-		a.muted(itoa(len(st.Apps)), 12)
+		color := p.muted
+		if a.page == PageApps {
+			color = p.navOnText
+		}
+		ui.Text(c, itoa(len(st.Apps))).FontSize(12).TextColor(color)
 	}) {
 		a.page = PageApps
 	}
@@ -88,7 +93,11 @@ func (a *App) sidebar() {
 		h := h
 		if a.navRow("host-"+h.ID, icHost, dot, h.ID, a.page == PageHost && a.hostID == h.ID, false, func() {
 			if label != "" {
-				a.muted(label, 12)
+				color := p.muted
+				if a.page == PageHost && a.hostID == h.ID {
+					color = p.navOnText
+				}
+				ui.Text(c, label).FontSize(12).TextColor(color)
 			}
 		}) {
 			a.page, a.hostID = PageHost, h.ID
@@ -108,10 +117,8 @@ func (a *App) cocoaCard() {
 	if co.Reachable {
 		title, sub, dot = i18n.T("gui.main.sidebar.cocoa.ready"), i18n.T("gui.main.sidebar.cocoa.ready.sub", "protocol", co.Protocol), p.ok.fg
 	}
-	// The card is a pane of Liquid Glass (glass plugin); with Reduce
-	// Transparency the plugin draws an opaque surface instead.
-	card := ui.Row(c).Padding(10).Gap(10).Radius(12).Margin(6, 0, 0).AlignItems(ui.Center)
-	card.Material(glass.Glass{})
+	// Status is content inside the sidebar, not a separate floating control.
+	card := ui.Row(c).Padding(10).Gap(10).Margin(6, 0, 0).AlignItems(ui.Center)
 	card.Children(func() {
 		a.cocoaMark(20, dot)
 		ui.Column(c).MinWidth(0).Children(func() {

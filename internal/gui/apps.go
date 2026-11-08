@@ -54,86 +54,85 @@ func (a *App) pageApps() {
 		}
 	})
 
-	w, _ := c.Size()
-	avail := w - sidebarWidth - 1 - 24 - 36
-	cols := int((avail + 14) / (290 + 14))
-	if cols < 1 {
-		cols = 1
-	}
-
-	ui.Scroll(c).Grow(1).Padding(8, 24, 22).Gap(14).Children(func() {
-		if st.Profiles.Error != "" {
-			a.banner(launcher.KindErr, i18n.T("gui.main.apps.error.profiles", "error", st.Profiles.Error))
-		}
-		if st.Profiles.Notice != "" {
-			a.banner(launcher.KindIdle, st.Profiles.Notice)
-		}
-		for _, w := range st.Profiles.Warnings {
-			a.banner(launcher.KindIdle, w)
-		}
-		switch {
-		case len(st.Hosts) == 0:
-			a.emptyState(i18n.T("gui.main.apps.empty.nohost.title"),
-				i18n.T("gui.main.apps.empty.nohost.body"),
-				func() {
-					if a.button(i18n.T("gui.main.apps.empty.nohost.button"), btnPrimary).Height(32).Clicked() {
-						a.openHost("")
-					}
-				})
-		case len(st.Apps) == 0:
-			a.emptyState(i18n.T("gui.main.apps.empty.noapps.title"),
-				i18n.T("gui.main.apps.empty.noapps.body", "host", st.Hosts[0].ID),
-				func() {
-					if a.button(i18n.T("gui.main.apps.empty.noapps.button"), btnPrimary).Height(32).Clicked() {
-						a.openEditor("")
-					}
-				})
-		case len(apps) == 0:
-			body := i18n.T("gui.main.apps.empty.nomatch.pinned")
-			if a.query != "" {
-				body = i18n.T("gui.main.apps.empty.nomatch.query", "query", a.query)
-			}
-			a.emptyState(i18n.T("gui.main.apps.empty.nomatch.title"), body, nil)
-		default:
-			ui.Grid(c).Columns(cols).Gap(14).Children(func() {
-				for _, ap := range apps {
-					a.appCard(ap)
+	ui.Scroll(c).Grow(1).MinHeight(0).Padding(24, 28, 28).Children(func() {
+		ui.Row(c).Justify(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MaxWidth(760).MinWidth(0).Gap(16).Children(func() {
+				if st.Profiles.Error != "" {
+					a.banner(launcher.KindErr, i18n.T("gui.main.apps.error.profiles", "error", st.Profiles.Error))
 				}
+				if st.Profiles.Notice != "" {
+					a.banner(launcher.KindIdle, st.Profiles.Notice)
+				}
+				for _, w := range st.Profiles.Warnings {
+					a.banner(launcher.KindIdle, w)
+				}
+				switch {
+				case len(st.Hosts) == 0:
+					a.emptyState(i18n.T("gui.main.apps.empty.nohost.title"),
+						i18n.T("gui.main.apps.empty.nohost.body"),
+						func() {
+							if a.button(i18n.T("gui.main.apps.empty.nohost.button"), btnPrimary).Height(32).Clicked() {
+								a.openHost("")
+							}
+						})
+				case len(st.Apps) == 0:
+					a.emptyState(i18n.T("gui.main.apps.empty.noapps.title"),
+						i18n.T("gui.main.apps.empty.noapps.body", "host", st.Hosts[0].ID),
+						func() {
+							if a.button(i18n.T("gui.main.apps.empty.noapps.button"), btnPrimary).Height(32).Clicked() {
+								a.openEditor("")
+							}
+						})
+				case len(apps) == 0:
+					body := i18n.T("gui.main.apps.empty.nomatch.pinned")
+					if a.query != "" {
+						body = i18n.T("gui.main.apps.empty.nomatch.query", "query", a.query)
+					}
+					a.emptyState(i18n.T("gui.main.apps.empty.nomatch.title"), body, nil)
+				default:
+					ui.Column(c).Radius(14).Background(a.p.card).Clip().Dividers(1, a.p.hair).Children(func() {
+						for _, ap := range apps {
+							a.appRow(ap)
+						}
+					})
+				}
+				a.muted(i18n.T("gui.main.apps.note.connected"), 12).Margin(6, 4, 0)
 			})
-		}
-		a.muted(i18n.T("gui.main.apps.note.connected"), 12).Margin(6, 4, 0)
+		})
 	})
 }
 
-// appCard is one application: a flat card with the soft fill and a 1px border.
-func (a *App) appCard(ap launcher.AppInfo) {
+// appRow keeps application content together in a single grouped list.
+func (a *App) appRow(ap launcher.AppInfo) {
 	c, p := a.c, a.p
-	ui.Column(c.Key("card-"+ap.ID)).Padding(16).Gap(12).Radius(12).Background(p.card).Border(1, p.cardLine).Children(func() {
-		ui.Row(c).Gap(12).AlignItems(ui.Start).Children(func() {
-			a.appIcon(ap.Icon, ap.Glyph, ap.Tile, 48, 12, 16)
-			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, ap.Name).FontSize(14.5).FontWeight(600).SingleLine()
-					if ap.Pinned {
-						ui.Icon(c, icPin).FontSize(12).TextColor(p.muted).Tooltip(i18n.T("gui.main.apps.card.pinned"))
-					}
-				})
-				a.mono(ap.CommandText, 11.5).TextColor(p.muted).SingleLine()
+	ui.Row(c.Key("card-"+ap.ID)).Padding(14, 18).Gap(14).AlignItems(ui.Center).Children(func() {
+		a.appIcon(ap.Icon, ap.Glyph, ap.Tile, 40, 10, 15)
+		ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, ap.Name).FontSize(14.5).FontWeight(600).SingleLine()
+				if ap.Pinned {
+					ui.Icon(c, icPin).FontSize(12).TextColor(p.muted).Tooltip(i18n.T("gui.main.apps.card.pinned"))
+				}
 			})
-			a.cardMenu(ap)
+			ui.Row(c).Gap(7).Wrap().Children(func() {
+				a.mono(ap.CommandText, 11.5).TextColor(p.muted).SingleLine()
+				a.muted("·", 11.5)
+				a.muted(ap.Host, 11.5).SingleLine()
+				a.muted("·", 11.5)
+				a.muted(ap.Transport, 11.5).SingleLine()
+				a.muted("·", 11.5)
+				if ap.Instances == "multiple" {
+					a.muted(i18n.T("gui.main.apps.card.multiple"), 11.5).SingleLine()
+				} else {
+					a.muted(i18n.T("gui.main.apps.card.single"), 11.5).SingleLine()
+				}
+			})
+			ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
+				ui.Box(c).Size(6, 6).Radius(3).Background(p.tone(ap.StatusKind).fg).Shrink(0)
+				ui.Text(c, ap.StatusLabel).FontSize(11.5).TextColor(p.tone(ap.StatusKind).fg).SingleLine()
+			})
 		})
-		ui.Row(c).Gap(6).Wrap().Children(func() {
-			a.chip(ap.Host)
-			a.chip(ap.Transport)
-			if ap.Instances == "multiple" {
-				a.chip(i18n.T("gui.main.apps.card.multiple"))
-			} else {
-				a.chip(i18n.T("gui.main.apps.card.single"))
-			}
-		})
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Box(c).Shrink(1).MinWidth(0).Children(func() { a.pill(ap.StatusKind, ap.StatusLabel, false) })
-			ui.Spacer(c)
+		ui.Row(c).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
 			switch {
 			case ap.Action == "start-again":
 				if a.keyedButton("open-"+ap.ID, i18n.T("gui.main.apps.card.startagain"), btnPrimary).Clicked() {
@@ -149,6 +148,7 @@ func (a *App) appCard(ap launcher.AppInfo) {
 					}
 				}
 			}
+			a.cardMenu(ap)
 		})
 	})
 }
