@@ -1,0 +1,4 @@
+# Redacted sample of a connection drop (does not contain the window-close marker).
+[12.000001 ERR waypipe-client(1234) main.rs:100] Connection lost
+client_loop: send disconnect: Broken pipe
+Error: "src/main.rs:300: Connection to the remote host was lost"

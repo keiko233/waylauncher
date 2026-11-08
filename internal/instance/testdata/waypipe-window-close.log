@@ -1,0 +1,6 @@
+# Redacted sample of a Waypipe-darwin log after closing the application window.
+# Real logs also contain host names and paths; none are kept here.
+[43.278250 ERR waypipe-server(1234) tracking.rs:1969] Received degenerate damage rectangle: x=0 y=0 w=100 h=0
+[43.278266 ERR waypipe-server(1234) tracking.rs:1969] Received degenerate damage rectangle: x=0 y=100 w=100 h=0
+[43.307002 ERR waypipe-server(1234) tracking.rs:1969] Received degenerate damage rectangle: x=0 y=0 w=0 h=100
+Error: "src/main.rs:252: Failed to wait for command completion: No child processes (os error 10)"
