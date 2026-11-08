@@ -13,6 +13,7 @@ import (
 
 // Settings are launcher-wide preferences persisted in settings.toml.
 type Settings struct {
+	Language                      string `toml:"language" json:"language"`                       // system | en-US | zh-CN | zh-TW
 	Theme                         string `toml:"theme" json:"theme"`                             // system | light | dark
 	Glass                         string `toml:"glass" json:"glass"`                             // system | clear | tinted
 	QuitBehavior                  string `toml:"quitBehavior" json:"quitBehavior"`               // immediate | ask
@@ -28,6 +29,7 @@ type Settings struct {
 
 func DefaultSettings() Settings {
 	return Settings{
+		Language:                      "system",
 		Theme:                         "system",
 		Glass:                         "system",
 		QuitBehavior:                  "immediate",
@@ -50,6 +52,7 @@ func (s Settings) Validate() error {
 		}
 		errs = append(errs, fmt.Errorf("%s: %q is not one of %v", name, v, ok))
 	}
+	oneOf("language", s.Language, "system", "en-US", "zh-CN", "zh-TW")
 	oneOf("theme", s.Theme, "system", "light", "dark")
 	oneOf("glass", s.Glass, "system", "clear", "tinted")
 	oneOf("quitBehavior", s.QuitBehavior, "immediate", "ask")
