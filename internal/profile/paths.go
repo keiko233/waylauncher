@@ -13,7 +13,10 @@ type Paths struct {
 	// read (and copied into a backup); it is never modified or moved.
 	LegacyDir string
 	BackupDir string // parent of timestamped backup directories
-	Now       func() time.Time
+	// CacheDir holds regenerable data such as discovered application icons
+	// (<CacheDir>/<host id>/<hash>.png). Nothing in it is user data.
+	CacheDir string
+	Now      func() time.Time
 }
 
 func DefaultPaths() (Paths, error) {
@@ -21,7 +24,12 @@ func DefaultPaths() (Paths, error) {
 	if err != nil {
 		return Paths{}, err
 	}
+	cache, err := os.UserCacheDir()
+	if err != nil || cache == "" {
+		cache = filepath.Join(home, "Library", "Caches")
+	}
 	return Paths{
+		CacheDir:  filepath.Join(cache, "Waylauncher"),
 		ConfigDir: filepath.Join(home, ".config", "waylauncher"),
 		LegacyDir: filepath.Join(home, ".config", "vm200-launcher"),
 		BackupDir: filepath.Join(home, "Library", "Application Support", "Waylauncher", "Backups"),

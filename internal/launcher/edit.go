@@ -35,7 +35,7 @@ func (s *Service) GetEdit(appID string) (AppEdit, error) {
 		return AppEdit{}, fmt.Errorf("%w %q", ErrUnknownApp, appID)
 	}
 	e := AppEdit{ID: a.ID, Name: a.Name, Host: a.Host, Command: append([]string{}, a.Command...), Cwd: a.Cwd,
-		Env: []EnvVar{}, Instances: a.Instances, Pinned: a.Pinned}
+		Env: []EnvVar{}, Instances: a.Instances, Pinned: a.Pinned, Icon: a.Icon}
 	for _, k := range sortedKeys(a.Env) {
 		e.Env = append(e.Env, EnvVar{Name: k, Value: a.Env[k]})
 	}

@@ -78,6 +78,7 @@ type InstanceInfo struct {
 	AppName   string     `json:"appName"`
 	Glyph     string     `json:"glyph"`
 	Tile      string     `json:"tile"`
+	Icon      string     `json:"icon,omitempty"` // the application's profile icon, as in AppInfo
 	HostID    string     `json:"hostId"`
 	HostSSH   string     `json:"hostSsh"`
 	Transport string     `json:"transport"`
@@ -133,6 +134,9 @@ type AppEdit struct {
 	Env       []EnvVar `json:"env"`
 	Instances string   `json:"instances"`
 	Pinned    bool     `json:"pinned"`
+	// Icon is the profile's icon path. The editor shows it and keeps it
+	// unchanged on save (there is no field to change it yet).
+	Icon string `json:"icon,omitempty"`
 }
 
 type Preview struct {

@@ -15,6 +15,8 @@ import (
 
 	"github.com/keiko233/waylauncher/internal/compositor"
 	"github.com/keiko233/waylauncher/internal/compositor/cocoaway"
+	"github.com/keiko233/waylauncher/internal/discovery"
+	"github.com/keiko233/waylauncher/internal/execx"
 	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/instance"
 	"github.com/keiko233/waylauncher/internal/profile"
@@ -41,6 +43,14 @@ type Config struct {
 	CocoaApp    string
 	// Exec-free hooks, replaced in tests.
 	LocalWaypipeVersion func(ctx context.Context) (path, version string, err error)
+
+	// Discovery runs ssh through Exec (default execx.Run) at SSHPath (default
+	// /usr/bin/ssh). ScanHook and IconsHook replace discovery.Scan and
+	// discovery.LoadIcons in tests.
+	Exec      execx.Exec
+	SSHPath   string
+	ScanHook  func(ctx context.Context, opt discovery.Options) ([]discovery.Entry, error)
+	IconsHook func(ctx context.Context, opt discovery.Options, entries []discovery.Entry) error
 }
 
 type Service struct {
@@ -53,6 +63,7 @@ type Service struct {
 	settings profile.Settings
 	cocoa    CocoaInfo
 	reports  map[string]HostReport
+	disc     map[string]*discState // last discovery scan per host
 
 	subMu sync.Mutex
 	subs  map[int]func()
@@ -227,6 +238,13 @@ var terminals = map[string]bool{"konsole": true, "foot": true, "alacritty": true
 
 var tiles = []string{"#23262E", "#4A4A55", "#1D5FD1", "#0E6F86", "#A44A00", "#6B3FA0", "#1F7A4D", "#B0306A"}
 
+// GlyphFor is the generated tile (glyph text and "#RRGGBB" colour) of an
+// application with this profile ID, name and command: what the window and the
+// Dock bundle show when the profile has no usable icon.
+func GlyphFor(id, name string, command []string) (string, string) {
+	return glyphAndTile(profile.App{ID: id, Name: name, Command: command})
+}
+
 func glyphAndTile(a profile.App) (string, string) {
 	h := fnv.New32a()
 	h.Write([]byte(a.ID))
@@ -336,6 +354,7 @@ func instanceInfo(sn instance.Snapshot, f *profile.File) InstanceInfo {
 	}
 	if a := f.AppByID(sn.AppID); a != nil {
 		in.Glyph, in.Tile = glyphAndTile(*a)
+		in.Icon = a.Icon
 		in.Command = remote.Join(a.Command)
 		in.Transport = transportDetail(a.Transport.MacOS)
 	} else {
