@@ -1,0 +1,5 @@
+{
+  "settings.language.title": "語言",
+  "settings.language.help": "套用於視窗、選單與通知。日誌與命令列輸出仍為英文。",
+  "settings.language.system": "跟隨系統"
+}

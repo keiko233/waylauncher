@@ -1,0 +1,5 @@
+{
+  "settings.language.title": "Language",
+  "settings.language.help": "Applies to the window, menus and notifications. Logs and command-line output stay in English.",
+  "settings.language.system": "Follow system"
+}
