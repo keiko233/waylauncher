@@ -69,6 +69,8 @@ Logs live in `~/Library/Logs/VM200 Launcher/` (directory 0700, files 0600). Appl
 
 ## Roadmap
 
+The planned cross-platform rewrite on MyGo (macOS via Cocoa-Way, Windows via Xpra/wprs) is described in [docs/mygo-cross-platform-plan.md](docs/mygo-cross-platform-plan.md). It is a draft; nothing in it is implemented yet.
+
 1. Multiple instances per profile: distinct IDs, lifecycle, status, logs, start/stop and precise window activation.
 2. Full GUI configuration: hosts, commands, working directories, environment variables, icons, validation, and shortcut creation.
 3. Remote `.desktop` discovery and opt-in import, without blindly executing metadata supplied by applications.
