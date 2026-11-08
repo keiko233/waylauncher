@@ -1,0 +1,20 @@
+{
+  "launcher.edit.envNameInvalid": "Names must start with a letter or “_” and use only letters, digits and “_”.",
+  "launcher.edit.envDuplicate": "Duplicate variable {name}.",
+  "launcher.edit.stopInstances": "Stop its running instances before removing it.",
+  "launcher.edit.hostExists": "A host with this ID exists.",
+  "launcher.edit.hostUnknown": "Unknown host.",
+  "launcher.edit.hostInUse": "{name} still uses this host. Remove or move it first.",
+  "launcher.edit.invalidID": "Invalid id \"{value}\" (use ASCII letters, digits and '-')",
+  "launcher.edit.duplicateID": "Duplicate id \"{value}\"",
+  "launcher.edit.nameEmpty": "Name is empty",
+  "launcher.edit.unknownHost": "Unknown host \"{value}\"",
+  "launcher.edit.commandEmpty": "Command must be a non-empty array starting with a program name",
+  "launcher.edit.commandNUL": "Command contains a NUL byte",
+  "launcher.edit.cwdAbsolute": "Working folder must be an absolute path on the host",
+  "launcher.edit.instancesInvalid": "Instances must be \"single\" or \"multiple\"",
+  "launcher.edit.envNUL": "Environment variable {value} contains a NUL byte",
+  "launcher.edit.sshEmpty": "SSH target is empty",
+  "launcher.edit.sshDash": "SSH target must not start with '-'",
+  "launcher.edit.sshSpace": "SSH target must not contain whitespace or NUL"
+}

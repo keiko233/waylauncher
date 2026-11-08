@@ -5,6 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -34,18 +35,21 @@ func (a *App) visibleApps() []launcher.AppInfo {
 func (a *App) pageApps() {
 	c, st := a.c, &a.st
 	apps := a.visibleApps()
-	hostText := ""
+	appsText := i18n.N("gui.main.count.app", len(st.Apps))
+	live := i18n.N("gui.main.count.instance", st.Live)
+	var sub string
 	switch {
 	case len(st.Hosts) == 1:
-		hostText = " on " + st.Hosts[0].ID
+		sub = i18n.T("gui.main.apps.subtitle.host", "apps", appsText, "host", st.Hosts[0].ID, "live", live)
 	case len(st.Hosts) > 1:
-		hostText = " on " + plural(len(st.Hosts), "host")
+		sub = i18n.T("gui.main.apps.subtitle.host", "apps", appsText, "host", i18n.N("gui.main.count.host", len(st.Hosts)), "live", live)
+	default:
+		sub = i18n.T("gui.main.apps.subtitle", "apps", appsText, "live", live)
 	}
-	sub := plural(len(st.Apps), "app") + hostText + " · " + plural(st.Live, "instance") + " running"
 
-	a.header("Applications", sub, func() {
-		ui.Segmented(c, &a.filter, "All", "Pinned").Label("Filter")
-		if a.iconButton(icPlus, "New app", btnPrimary).Disabled(len(st.Hosts) == 0).Clicked() {
+	a.header(i18n.T("gui.main.apps.title"), sub, func() {
+		ui.Segmented(c, &a.filter, i18n.T("gui.main.apps.filter.all"), i18n.T("gui.main.apps.filter.pinned")).Label(i18n.T("gui.main.apps.filter.label"))
+		if a.iconButton(icPlus, i18n.T("gui.main.apps.new.short"), btnPrimary).Disabled(len(st.Hosts) == 0).Clicked() {
 			a.openEditor("")
 		}
 	})
@@ -59,7 +63,7 @@ func (a *App) pageApps() {
 
 	ui.Scroll(c).Grow(1).Padding(8, 24, 22).Gap(14).Children(func() {
 		if st.Profiles.Error != "" {
-			a.banner(launcher.KindErr, "The profiles could not be loaded or are invalid. Nothing was changed on disk.\n"+st.Profiles.Error)
+			a.banner(launcher.KindErr, i18n.T("gui.main.apps.error.profiles", "error", st.Profiles.Error))
 		}
 		if st.Profiles.Notice != "" {
 			a.banner(launcher.KindIdle, st.Profiles.Notice)
@@ -69,27 +73,27 @@ func (a *App) pageApps() {
 		}
 		switch {
 		case len(st.Hosts) == 0:
-			a.emptyState("Add a host to get started",
-				"A host is the Linux machine your applications run on, as user@address or a name from your ssh config. Waylauncher never stores passwords; it uses your ssh keys and known_hosts.",
+			a.emptyState(i18n.T("gui.main.apps.empty.nohost.title"),
+				i18n.T("gui.main.apps.empty.nohost.body"),
 				func() {
-					if a.button("Add host…", btnPrimary).Height(32).Clicked() {
+					if a.button(i18n.T("gui.main.apps.empty.nohost.button"), btnPrimary).Height(32).Clicked() {
 						a.openHost("")
 					}
 				})
 		case len(st.Apps) == 0:
-			a.emptyState("No applications yet",
-				"Add the first application: a command to run on "+st.Hosts[0].ID+", such as konsole --separate --nofork.",
+			a.emptyState(i18n.T("gui.main.apps.empty.noapps.title"),
+				i18n.T("gui.main.apps.empty.noapps.body", "host", st.Hosts[0].ID),
 				func() {
-					if a.button("New application…", btnPrimary).Height(32).Clicked() {
+					if a.button(i18n.T("gui.main.apps.empty.noapps.button"), btnPrimary).Height(32).Clicked() {
 						a.openEditor("")
 					}
 				})
 		case len(apps) == 0:
-			body := "No applications are pinned. Use “Pin to menu bar” in an application’s ⋯ menu."
+			body := i18n.T("gui.main.apps.empty.nomatch.pinned")
 			if a.query != "" {
-				body = "No application matches “" + a.query + "”."
+				body = i18n.T("gui.main.apps.empty.nomatch.query", "query", a.query)
 			}
-			a.emptyState("Nothing matches", body, nil)
+			a.emptyState(i18n.T("gui.main.apps.empty.nomatch.title"), body, nil)
 		default:
 			ui.Grid(c).Columns(cols).Gap(14).Children(func() {
 				for _, ap := range apps {
@@ -97,7 +101,7 @@ func (a *App) pageApps() {
 				}
 			})
 		}
-		a.muted("“Connected” means the Waypipe connection is alive. It doesn’t confirm that a window is on screen: Cocoa-Way doesn’t report windows yet.", 12).Margin(6, 4, 0)
+		a.muted(i18n.T("gui.main.apps.note.connected"), 12).Margin(6, 4, 0)
 	})
 }
 
@@ -111,7 +115,7 @@ func (a *App) appCard(ap launcher.AppInfo) {
 				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, ap.Name).FontSize(14.5).FontWeight(600).SingleLine()
 					if ap.Pinned {
-						ui.Icon(c, icPin).FontSize(12).TextColor(p.muted).Tooltip("Pinned to the menu bar")
+						ui.Icon(c, icPin).FontSize(12).TextColor(p.muted).Tooltip(i18n.T("gui.main.apps.card.pinned"))
 					}
 				})
 				a.mono(ap.CommandText, 11.5).TextColor(p.muted).SingleLine()
@@ -122,9 +126,9 @@ func (a *App) appCard(ap launcher.AppInfo) {
 			a.chip(ap.Host)
 			a.chip(ap.Transport)
 			if ap.Instances == "multiple" {
-				a.chip("Multiple instances")
+				a.chip(i18n.T("gui.main.apps.card.multiple"))
 			} else {
-				a.chip("Single instance")
+				a.chip(i18n.T("gui.main.apps.card.single"))
 			}
 		})
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -132,15 +136,15 @@ func (a *App) appCard(ap launcher.AppInfo) {
 			ui.Spacer(c)
 			switch {
 			case ap.Action == "start-again":
-				if a.keyedButton("open-"+ap.ID, "Start again", btnPrimary).Clicked() {
+				if a.keyedButton("open-"+ap.ID, i18n.T("gui.main.apps.card.startagain"), btnPrimary).Clicked() {
 					a.openApp(ap.ID, false)
 				}
 			default:
-				if a.keyedButton("open-"+ap.ID, "Open", btnPlain).Clicked() {
+				if a.keyedButton("open-"+ap.ID, i18n.T("gui.main.apps.card.open"), btnPlain).Clicked() {
 					a.openApp(ap.ID, false)
 				}
 				if ap.Live > 0 && ap.Instances == "multiple" {
-					if a.keyedButton("new-"+ap.ID, "New window", btnPlain).Clicked() {
+					if a.keyedButton("new-"+ap.ID, i18n.T("gui.main.apps.card.newwindow"), btnPlain).Clicked() {
 						a.openApp(ap.ID, true)
 					}
 				}
@@ -152,25 +156,25 @@ func (a *App) appCard(ap launcher.AppInfo) {
 func (a *App) cardMenu(ap launcher.AppInfo) {
 	c, p := a.c, a.p
 	more := ui.ButtonBase(c.Key("more-"+ap.ID)).Size(28, 28).Radius(8).Center().Shrink(0).
-		Label("More actions for " + ap.Name).TextColor(p.muted)
+		Label(i18n.T("gui.main.apps.menu.label", "name", ap.Name)).TextColor(p.muted)
 	if more.Hovered() {
 		more.Background(p.hover)
 	}
 	more.Children(func() { ui.Icon(c, icDots).FontSize(16) })
 	more.PopoverMenuButton(func(m *ui.Menu) {
-		if m.Item("Start again").Disabled(ap.Action != "start-again").Chosen() {
+		if m.Item(i18n.T("gui.main.apps.menu.startagain")).Disabled(ap.Action != "start-again").Chosen() {
 			a.openApp(ap.ID, false)
 		}
-		if m.Item("Open last log").Chosen() {
+		if m.Item(i18n.T("gui.main.apps.menu.lastlog")).Chosen() {
 			a.async(func() (string, error) { return "", a.openLastLog(ap.ID) }, nil)
 		}
 		m.Separator()
-		if m.Item("Edit…").Chosen() {
+		if m.Item(i18n.T("gui.main.apps.menu.edit")).Chosen() {
 			a.openEditor(ap.ID)
 		}
-		pin := "Pin to menu bar"
+		pin := i18n.T("gui.main.apps.menu.pin")
 		if ap.Pinned {
-			pin = "Unpin from menu bar"
+			pin = i18n.T("gui.main.apps.menu.unpin")
 		}
 		if m.Item(pin).Chosen() {
 			want := !ap.Pinned
@@ -179,16 +183,18 @@ func (a *App) cardMenu(ap launcher.AppInfo) {
 					return "", err
 				}
 				if want {
-					return "Pinned to the menu bar.", nil
+					return i18n.T("gui.main.apps.toast.pinned"), nil
 				}
-				return "Unpinned.", nil
+				return i18n.T("gui.main.apps.toast.unpinned"), nil
 			}, nil)
 		}
 		m.Separator()
-		if m.Item("Remove from Waylauncher…").Chosen() {
-			a.confirmThen("Remove "+ap.Name+"?",
-				"This removes the profile from profiles.toml (a backup is kept). Nothing is changed on the host.", "Remove", func() {
-					a.async(func() (string, error) { return "Removed " + ap.Name + ".", a.svc.RemoveApp(ap.ID) }, nil)
+		if m.Item(i18n.T("gui.main.apps.menu.remove")).Chosen() {
+			a.confirmThen(i18n.T("gui.main.apps.remove.title", "name", ap.Name),
+				i18n.T("gui.main.apps.remove.body"), i18n.T("gui.main.apps.remove.yes"), func() {
+					a.async(func() (string, error) {
+						return i18n.T("gui.main.apps.toast.removed", "name", ap.Name), a.svc.RemoveApp(ap.ID)
+					}, nil)
 				})
 		}
 	}, ui.PopoverMenuButtonOptions{At: ui.AnchorBottomEnd, Self: ui.AnchorTopEnd})

@@ -3,6 +3,8 @@ package gui
 import (
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
+
+	"github.com/keiko233/waylauncher/internal/i18n"
 )
 
 func (a *App) navRow(key string, icon *ui.SVG, iconColor ui.Color, label string, on, disabled bool, trail func()) bool {
@@ -36,32 +38,32 @@ func (a *App) navRow(key string, icon *ui.SVG, iconColor ui.Color, label string,
 func (a *App) sidebar() {
 	c, p, st := a.c, a.p, &a.st
 	ui.Box(c).Height(titleBarHeight).Shrink(0).DragWindow()
-	if ui.SearchField(c, &a.query).Label("Search applications").Placeholder("Search").Changed() {
+	if ui.SearchField(c, &a.query).Label(i18n.T("gui.main.sidebar.search.label")).Placeholder(i18n.T("gui.main.sidebar.search.placeholder")).Changed() {
 		a.page = PageApps
 	}
 	ui.Box(c).Height(8)
 
-	a.sectionLabel("Library")
-	if a.navRow("nav-apps", icApps, p.icApps, "Applications", a.page == PageApps, false, func() {
+	a.sectionLabel(i18n.T("gui.main.sidebar.library"))
+	if a.navRow("nav-apps", icApps, p.icApps, i18n.T("gui.main.sidebar.apps"), a.page == PageApps, false, func() {
 		a.muted(itoa(len(st.Apps)), 12)
 	}) {
 		a.page = PageApps
 	}
-	if a.navRow("nav-running", icRun, p.icRun, "Running", a.page == PageRunning, false, func() {
+	if a.navRow("nav-running", icRun, p.icRun, i18n.T("gui.main.sidebar.running"), a.page == PageRunning, false, func() {
 		if st.Live > 0 {
 			ui.Badge(c, itoa(st.Live)).Background(p.accent).TextColor(p.accentText)
 		}
 	}) {
 		a.page = PageRunning
 	}
-	a.navRow("nav-discover", icDisc, p.icDisc, "Discover", false, true, func() {
-		a.muted("Coming soon", 12)
+	a.navRow("nav-discover", icDisc, p.icDisc, i18n.T("gui.main.sidebar.discover"), false, true, func() {
+		a.muted(i18n.T("gui.main.sidebar.soon"), 12)
 	})
 
 	ui.Row(c).AlignItems(ui.Center).Children(func() {
-		a.sectionLabel("Hosts")
+		a.sectionLabel(i18n.T("gui.main.sidebar.hosts"))
 		ui.Spacer(c)
-		add := ui.ButtonBase(c.Key("add-host")).Size(20, 20).Radius(6).Center().Label("Add host").Tooltip("Add host").TextColor(p.muted)
+		add := ui.ButtonBase(c.Key("add-host")).Size(20, 20).Radius(6).Center().Label(i18n.T("gui.main.sidebar.addhost")).Tooltip(i18n.T("gui.main.sidebar.addhost")).TextColor(p.muted)
 		if add.Hovered() {
 			add.Background(p.hover)
 		}
@@ -71,7 +73,7 @@ func (a *App) sidebar() {
 		}
 	})
 	if len(st.Hosts) == 0 {
-		a.muted("No hosts yet", 12).Padding(4, 10)
+		a.muted(i18n.T("gui.main.sidebar.nohosts"), 12).Padding(4, 10)
 	}
 	for _, h := range st.Hosts {
 		label := ""
@@ -79,9 +81,9 @@ func (a *App) sidebar() {
 		switch {
 		case !h.Checked:
 		case h.Reachable:
-			label, dot = "reachable", p.ok.fg
+			label, dot = i18n.T("gui.main.sidebar.reachable"), p.ok.fg
 		default:
-			label, dot = "unreachable", p.err.fg
+			label, dot = i18n.T("gui.main.sidebar.unreachable"), p.err.fg
 		}
 		h := h
 		if a.navRow("host-"+h.ID, icHost, dot, h.ID, a.page == PageHost && a.hostID == h.ID, false, func() {
@@ -94,7 +96,7 @@ func (a *App) sidebar() {
 	}
 
 	ui.Spacer(c)
-	if a.navRow("nav-settings", icSet, p.icSet, "Settings", a.page == PageSettings, false, nil) {
+	if a.navRow("nav-settings", icSet, p.icSet, i18n.T("gui.main.sidebar.settings"), a.page == PageSettings, false, nil) {
 		a.page = PageSettings
 	}
 	a.cocoaCard()
@@ -102,9 +104,9 @@ func (a *App) sidebar() {
 
 func (a *App) cocoaCard() {
 	c, p, co := a.c, a.p, a.st.Cocoa
-	title, sub, dot := "Cocoa-Way not running", "Starts when you open an app", p.warn.fg
+	title, sub, dot := i18n.T("gui.main.sidebar.cocoa.notrunning"), i18n.T("gui.main.sidebar.cocoa.notrunning.sub"), p.warn.fg
 	if co.Reachable {
-		title, sub, dot = "Cocoa-Way ready", "Control socket · protocol "+itoa(co.Protocol), p.ok.fg
+		title, sub, dot = i18n.T("gui.main.sidebar.cocoa.ready"), i18n.T("gui.main.sidebar.cocoa.ready.sub", "protocol", co.Protocol), p.ok.fg
 	}
 	// The card is a pane of Liquid Glass (glass plugin); with Reduce
 	// Transparency the plugin draws an opaque surface instead.

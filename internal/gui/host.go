@@ -3,6 +3,7 @@ package gui
 import (
 	"github.com/egoist/mygo/ui"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -32,10 +33,10 @@ func (a *App) pageHost() {
 	c, p := a.c, a.p
 	h, ok := a.hostInfo(a.hostID)
 	if !ok {
-		a.header("Hosts", "", nil)
+		a.header(i18n.T("gui.main.host.title"), "", nil)
 		a.panelBox(ui.Column(c).Grow(1).Margin(0, 12, 12, 12)).Children(func() {
-			a.emptyState("No hosts yet", "Add the machine your Linux applications run on.", func() {
-				if a.button("Add host…", btnPrimary).Height(32).Clicked() {
+			a.emptyState(i18n.T("gui.main.host.empty.title"), i18n.T("gui.main.host.empty.body"), func() {
+				if a.button(i18n.T("gui.main.host.empty.button"), btnPrimary).Height(32).Clicked() {
 					a.openHost("")
 				}
 			})
@@ -46,16 +47,16 @@ func (a *App) pageHost() {
 	busy := a.checking[h.ID]
 	a.header(h.ID, h.SSH, func() {
 		if has {
-			a.muted("Checked "+clockShort(r.At), 12)
+			a.muted(i18n.T("gui.main.host.checked", "time", clockShort(r.At)), 12)
 		} else {
-			a.muted("Not checked yet", 12)
+			a.muted(i18n.T("gui.main.host.notchecked"), 12)
 		}
-		if a.button("Edit host…", btnPlain).Clicked() {
+		if a.button(i18n.T("gui.main.host.edit"), btnPlain).Clicked() {
 			a.openHost(h.ID)
 		}
-		label := "Run checks"
+		label := i18n.T("gui.main.host.runchecks")
 		if busy {
-			label = "Checking…"
+			label = i18n.T("gui.main.host.checking")
 		}
 		if a.button(label, btnPrimary).Disabled(busy).Clicked() {
 			a.runChecks(h.ID)
@@ -69,9 +70,9 @@ func (a *App) pageHost() {
 	ui.Scroll(c).Grow(1).MinHeight(0).Margin(0, 12, 12, 12).Children(func() {
 		ui.Row(c).Gap(10).AlignItems(ui.Start).Children(func() {
 			a.panelBox(ui.Column(c).Grow(1).Basis(0).MinWidth(0).Padding(18)).Children(func() {
-				ui.Text(c, "Connection checks").FontSize(14).Bold().Margin(0, 0, 8)
+				ui.Text(c, i18n.T("gui.main.host.checks.title")).FontSize(14).Bold().Margin(0, 0, 8)
 				if !has {
-					a.muted("Nothing has been checked yet. “Run checks” connects once with ssh (BatchMode, no prompts) to test the host key, remote waypipe and the launch wrapper. It doesn’t start any application.", 12.5).Padding(6, 0)
+					a.muted(i18n.T("gui.main.host.checks.none"), 12.5).Padding(6, 0)
 				}
 				for _, ch := range r.Checks {
 					a.checkRow(ch)
@@ -83,11 +84,11 @@ func (a *App) pageHost() {
 					a.failurePanel(r.Failure)
 				}
 				ui.RichText(c,
-					ui.Span{Text: "Local Network access. ", Weight: 700, Color: p.text},
-					ui.Span{Text: "macOS doesn’t let apps read this setting. If Terminal reaches the host but Waylauncher reports “No route to host”, check System Settings › Privacy & Security › Local Network. Waylauncher never changes it."},
+					ui.Span{Text: i18n.T("gui.main.host.local.title"), Weight: 700, Color: p.text},
+					ui.Span{Text: i18n.T("gui.main.host.local.body")},
 				).FontSize(12.5).TextColor(p.text2).Padding(14, 18).Radius(12).Background(p.note).Selectable()
 				ui.Row(c).Children(func() {
-					if a.button("Open Local Network settings", btnPlain).Clicked() {
+					if a.button(i18n.T("gui.main.host.local.button"), btnPlain).Clicked() {
 						a.async(func() (string, error) { return "", openLocalNetworkSettings() }, nil)
 					}
 				})
@@ -132,38 +133,40 @@ func (a *App) cocoaPanel(co launcher.CocoaInfo) {
 			a.cocoaMark(22, dot)
 			ui.Text(c, "Cocoa-Way").FontSize(14).Bold()
 			if co.Reachable {
-				a.pill(launcher.KindOK, "Ready", true)
+				a.pill(launcher.KindOK, i18n.T("gui.main.host.cocoa.ready"), true)
 			} else {
-				a.pill(launcher.KindWarn, "Not running", true)
+				a.pill(launcher.KindWarn, i18n.T("gui.main.host.cocoa.notrunning"), true)
 			}
 			ui.Spacer(c)
-			if a.button("Open Cocoa-Way", btnPlain).Clicked() {
+			if a.button(i18n.T("gui.main.host.cocoa.open"), btnPlain).Clicked() {
 				a.async(func() (string, error) { return "", a.svc.OpenCocoaWay() }, nil)
 			}
 		})
 		ui.Grid(c).ColumnTracks(ui.Fixed(130), ui.Fr(1)).GapY(8).Padding(12, 0, 0).Selectable().Children(func() {
-			a.kv("Control socket", func() { a.mono(co.Socket, 11.5) })
-			a.kv("Protocol", func() { ui.Text(c, itoa(co.Protocol)+" (supported)").FontSize(12.5) })
+			a.kv(i18n.T("gui.main.host.cocoa.socket"), func() { a.mono(co.Socket, 11.5) })
+			a.kv(i18n.T("gui.main.host.cocoa.protocol"), func() {
+				ui.Text(c, i18n.T("gui.main.host.cocoa.protocol.value", "protocol", co.Protocol)).FontSize(12.5)
+			})
 			if co.Version != "" {
 				v := co.Version
 				if co.PID != 0 {
-					v += " · pid " + itoa(co.PID)
+					v = i18n.T("gui.main.host.cocoa.version.pid", "version", v, "pid", co.PID)
 				}
-				a.kv("Version", func() { ui.Text(c, v).FontSize(12.5) })
+				a.kv(i18n.T("gui.main.host.cocoa.version"), func() { ui.Text(c, v).FontSize(12.5) })
 			}
 			disp := "—"
 			switch {
 			case co.Display != "":
 				disp = co.Display
 			case co.Reachable:
-				disp = "shown after “Run checks”"
+				disp = i18n.T("gui.main.host.cocoa.display.later")
 			}
-			a.kv("Wayland display", func() { a.mono(disp, 11.5) })
-			a.kv("Window reporting", func() {
-				ui.Text(c, "Not available yet: needed for exact window focus (upstream request)").FontSize(12.5).TextColor(p.warn.fg)
+			a.kv(i18n.T("gui.main.host.cocoa.display"), func() { a.mono(disp, 11.5) })
+			a.kv(i18n.T("gui.main.host.cocoa.window"), func() {
+				ui.Text(c, i18n.T("gui.main.host.cocoa.window.value")).FontSize(12.5).TextColor(p.warn.fg)
 			})
 			if co.Error != "" && !co.Reachable {
-				a.kv("Last error", func() { ui.Text(c, co.Error).FontSize(12.5).TextColor(p.err.fg) })
+				a.kv(i18n.T("gui.main.host.cocoa.error"), func() { ui.Text(c, co.Error).FontSize(12.5).TextColor(p.err.fg) })
 			}
 		})
 	})
@@ -179,10 +182,10 @@ func (a *App) failurePanel(f *launcher.Failure) {
 			ui.Text(c, f.Title).FontSize(13.5).Bold()
 			ui.Text(c, f.Message).FontSize(12.5).TextColor(p.text2).Selectable()
 			ui.Row(c).Gap(8).Wrap().Margin(4, 0, 0).Children(func() {
-				if f.SSHCommand != "" && a.button("Copy ssh command", btnPlain).Clicked() {
+				if f.SSHCommand != "" && a.button(i18n.T("gui.main.host.copyssh"), btnPlain).Clicked() {
 					cmd := f.SSHCommand
 					a.async(func() (string, error) {
-						return "Copied. Paste it in Terminal to verify the host key.", a.copyText(cmd)
+						return i18n.T("gui.main.host.toast.copied"), a.copyText(cmd)
 					}, nil)
 				}
 			})

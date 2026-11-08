@@ -6,6 +6,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -56,17 +57,17 @@ func (a *App) hostSheet() {
 	ui.DialogBase(c, &open, func(backdrop, panel ui.Element) {
 		backdrop.Background(p.scrim)
 		a.sheetPanel(panel, 460)
-		title := "Add host"
+		title := i18n.T("gui.forms.host.addTitle")
 		if !e.m.IsNew {
-			title = "Edit host"
+			title = i18n.T("gui.forms.host.editTitle")
 		}
 		ui.Column(c).Padding(20, 26, 14).Children(func() {
 			ui.Text(c, title).FontSize(17).Bold()
-			a.muted("The machine your applications run on", 12)
+			a.muted(i18n.T("gui.forms.host.sub"), 12)
 		})
 		ui.Divider(c).Background(p.hair)
 		ui.Grid(c).ColumnTracks(ui.Fixed(90), ui.Fr(1)).GapX(16).GapY(14).Padding(18, 26).Children(func() {
-			lbl := a.label("ID")
+			lbl := a.label(i18n.T("gui.forms.editor.id"))
 			ui.Column(c).Children(func() {
 				in := ui.TextInput(c.Key("h-id"), &e.m.ID).LabelledBy(lbl).Font("monospace").Placeholder("vm200").Disabled(!e.m.IsNew).Invalid(e.err("id") != "")
 				if e.m.IsNew {
@@ -77,13 +78,13 @@ func (a *App) hostSheet() {
 				}
 				a.errText(e.err("id"))
 			})
-			lbl = a.label("SSH target")
+			lbl = a.label(i18n.T("gui.forms.host.sshTarget"))
 			ui.Column(c).Children(func() {
-				in := ui.TextInput(c.Key("h-ssh"), &e.m.SSH).LabelledBy(lbl).Font("monospace").Placeholder("user@10.0.0.9 or a name from ~/.ssh/config").Invalid(e.err("ssh") != "")
+				in := ui.TextInput(c.Key("h-ssh"), &e.m.SSH).LabelledBy(lbl).Font("monospace").Placeholder(i18n.T("gui.forms.host.sshPlaceholder")).Invalid(e.err("ssh") != "")
 				if in.Changed() {
 					e.touched["ssh"] = true
 				}
-				a.help("Host keys are checked against your known_hosts and never accepted automatically. No passwords: use ssh keys.")
+				a.help(i18n.T("gui.forms.host.sshHelp"))
 				a.errText(e.err("ssh"))
 				a.errText(e.err("general"))
 			})
@@ -91,11 +92,11 @@ func (a *App) hostSheet() {
 		ui.Divider(c).Background(p.hair)
 		ui.Row(c).Gap(10).Padding(14, 26).AlignItems(ui.Center).Background(p.note).Children(func() {
 			if !e.m.IsNew {
-				if a.button("Remove…", btnDangerText).Height(32).Clicked() {
+				if a.button(i18n.T("gui.forms.host.remove"), btnDangerText).Height(32).Clicked() {
 					id := e.m.ID
-					a.confirmThen("Remove host "+id+"?",
-						"This removes it from profiles.toml. Applications that still use it must be removed or moved first.", "Remove", func() {
-							a.async(func() (string, error) { return "Removed " + id + ".", a.svc.RemoveHost(id) }, func() {
+					a.confirmThen(i18n.T("gui.forms.host.removeTitle", "id", id),
+						i18n.T("gui.forms.host.removeBody"), i18n.T("gui.forms.host.removeConfirm"), func() {
+							a.async(func() (string, error) { return i18n.T("gui.forms.host.removed", "id", id), a.svc.RemoveHost(id) }, func() {
 								a.host = nil
 								if a.page == PageHost && a.hostID == id {
 									a.page = PageApps
@@ -105,12 +106,12 @@ func (a *App) hostSheet() {
 				}
 			}
 			ui.Spacer(c)
-			if a.button("Cancel", btnPlain).Height(32).Clicked() {
+			if a.button(i18n.T("gui.forms.cancel"), btnPlain).Height(32).Clicked() {
 				open = false
 			}
-			label := "Save"
+			label := i18n.T("gui.forms.save")
 			if e.m.IsNew {
-				label = "Add host"
+				label = i18n.T("gui.forms.host.addTitle")
 			}
 			if a.button(label, btnPrimary).Height(32).Disabled(len(e.problems) > 0 || e.saving).Clicked() {
 				a.saveHost(e)
@@ -144,9 +145,9 @@ func (a *App) saveHost(e *hostEditor) {
 					a.ed.m.Host = m.ID
 				}
 				if m.IsNew {
-					a.toast("Added host " + m.ID + ".")
+					a.toast(i18n.T("gui.forms.host.added", "id", m.ID))
 				} else {
-					a.toast("Saved " + m.ID + ".")
+					a.toast(i18n.T("gui.forms.host.saved", "id", m.ID))
 				}
 			}
 		})

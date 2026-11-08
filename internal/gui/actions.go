@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/egoist/mygo"
+
+	"github.com/keiko233/waylauncher/internal/i18n"
 )
 
 func (a *App) openLastLog(appID string) error {
@@ -33,7 +35,7 @@ func (a *App) revealLog(instID string) error {
 
 func (a *App) copyText(text string) error {
 	if text == "" || len(text) > 4096 {
-		return errors.New("nothing to copy")
+		return errors.New(i18n.T("gui.main.common.nothing_to_copy"))
 	}
 	mygo.Clipboard.WriteText(text)
 	return nil

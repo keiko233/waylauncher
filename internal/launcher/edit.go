@@ -3,9 +3,11 @@ package launcher
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/profile"
 	"github.com/keiko233/waylauncher/internal/remote"
 	"github.com/keiko233/waylauncher/internal/transport"
@@ -65,10 +67,10 @@ func candidate(e AppEdit) (profile.App, []Problem) {
 		case name == "" && v.Value == "":
 			continue // an untouched empty row
 		case !profile.ValidEnvKey(name):
-			problems = append(problems, Problem{Field: "env." + strconv.Itoa(i), Message: "Names must start with a letter or “_” and use only letters, digits and “_”."})
+			problems = append(problems, Problem{Field: "env." + strconv.Itoa(i), Message: i18n.T("launcher.edit.envNameInvalid")})
 		default:
 			if _, dup := env[name]; dup {
-				problems = append(problems, Problem{Field: "env." + strconv.Itoa(i), Message: "Duplicate variable " + name + "."})
+				problems = append(problems, Problem{Field: "env." + strconv.Itoa(i), Message: i18n.T("launcher.edit.envDuplicate", "name", name)})
 			}
 			env[name] = v.Value
 		}
@@ -153,7 +155,7 @@ func (s *Service) ValidateEdit(e AppEdit) []Problem {
 			if field == "env" && hasEnvRows {
 				continue
 			}
-			problems = append(problems, Problem{Field: field, Message: capitalize(msg)})
+			problems = append(problems, Problem{Field: field, Message: problemText(msg)})
 		}
 	}
 	return problems
@@ -174,6 +176,39 @@ func flatten(err error) []string {
 	}
 	walk(err)
 	return out
+}
+
+// validationText maps a profile validation message to its catalog key and
+// placeholder arguments. Unknown messages are shown as written (in English).
+var validationText = []struct {
+	re  *regexp.Regexp
+	key string
+}{
+	{regexp.MustCompile(`^invalid id "(.*)" \(use`), "launcher.edit.invalidID"},
+	{regexp.MustCompile(`^duplicate (?:host|app) id "(.*)"$`), "launcher.edit.duplicateID"},
+	{regexp.MustCompile(`^name is empty$`), "launcher.edit.nameEmpty"},
+	{regexp.MustCompile(`^unknown host "(.*)"$`), "launcher.edit.unknownHost"},
+	{regexp.MustCompile(`^command must be a non-empty array`), "launcher.edit.commandEmpty"},
+	{regexp.MustCompile(`^command contains a NUL byte$`), "launcher.edit.commandNUL"},
+	{regexp.MustCompile(`^cwd must be an absolute remote path$`), "launcher.edit.cwdAbsolute"},
+	{regexp.MustCompile(`^instances must be `), "launcher.edit.instancesInvalid"},
+	{regexp.MustCompile(`^env (.*) contains a NUL byte$`), "launcher.edit.envNUL"},
+	{regexp.MustCompile(`^ssh target is empty$`), "launcher.edit.sshEmpty"},
+	{regexp.MustCompile(`^ssh target must not start with '-'$`), "launcher.edit.sshDash"},
+	{regexp.MustCompile(`^ssh target must not contain whitespace or NUL$`), "launcher.edit.sshSpace"},
+}
+
+// problemText is the user-visible text of a profile validation message.
+func problemText(msg string) string {
+	for _, v := range validationText {
+		if m := v.re.FindStringSubmatch(msg); m != nil {
+			if len(m) > 1 {
+				return i18n.T(v.key, "value", m[1])
+			}
+			return i18n.T(v.key)
+		}
+	}
+	return capitalize(msg)
 }
 
 func capitalize(s string) string {
@@ -256,7 +291,7 @@ func (s *Service) SetPinned(appID string, pinned bool) error {
 func (s *Service) RemoveApp(appID string) error {
 	for _, sn := range s.mgr.List() {
 		if sn.AppID == appID && sn.State.Live() {
-			return errors.New("Stop its running instances before removing it.")
+			return errors.New(i18n.T("launcher.edit.stopInstances"))
 		}
 	}
 	s.mu.RLock()
@@ -304,9 +339,9 @@ func (s *Service) hostProblems(h HostEdit) (*profile.File, []Problem) {
 	}
 	switch {
 	case h.IsNew && idx >= 0:
-		problems = append(problems, Problem{Field: "id", Message: "A host with this ID exists."})
+		problems = append(problems, Problem{Field: "id", Message: i18n.T("launcher.edit.hostExists")})
 	case !h.IsNew && idx < 0:
-		problems = append(problems, Problem{Field: "general", Message: "Unknown host."})
+		problems = append(problems, Problem{Field: "general", Message: i18n.T("launcher.edit.hostUnknown")})
 	}
 	if idx >= 0 && !h.IsNew {
 		f.Hosts[idx].SSH = h.SSH
@@ -323,7 +358,7 @@ func (s *Service) hostProblems(h HostEdit) (*profile.File, []Problem) {
 			if strings.Contains(msg, "id") {
 				field = "id"
 			}
-			problems = append(problems, Problem{Field: field, Message: capitalize(msg)})
+			problems = append(problems, Problem{Field: field, Message: problemText(msg)})
 		}
 	}
 	return f, problems
@@ -354,7 +389,7 @@ func (s *Service) RemoveHost(id string) error {
 	s.mu.RUnlock()
 	for _, a := range f.Apps {
 		if a.Host == id {
-			return fmt.Errorf("%s still uses this host. Remove or move it first.", a.Name)
+			return errors.New(i18n.T("launcher.edit.hostInUse", "name", a.Name))
 		}
 	}
 	kept := f.Hosts[:0]

@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -150,10 +151,10 @@ func (a *App) editorSheet() {
 	ui.DialogBase(c, &open, func(backdrop, panel ui.Element) {
 		backdrop.Background(p.scrim)
 		a.sheetPanel(panel, 760)
-		title, sub := "New application", "A command to run on one of your hosts"
+		title, sub := i18n.T("gui.forms.editor.newTitle"), i18n.T("gui.forms.editor.newSub")
 		glyph := "+"
 		if !e.m.IsNew {
-			title, sub = e.m.Name, "Saved to profiles.toml; the previous file is backed up first"
+			title, sub = e.m.Name, i18n.T("gui.forms.editor.editSub")
 			if title == "" {
 				title = e.m.ID
 			}
@@ -171,13 +172,13 @@ func (a *App) editorSheet() {
 		ui.Divider(c).Background(p.hair)
 		ui.Row(c).Gap(10).Padding(14, 26).AlignItems(ui.Center).Background(p.note).Children(func() {
 			if n := len(e.problems); n > 0 {
-				ui.Text(c, plural(n, "problem")+" to fix before saving").FontSize(12).FontWeight(600).TextColor(p.dangerText)
+				ui.Text(c, i18n.N("gui.forms.editor.problems", n)).FontSize(12).FontWeight(600).TextColor(p.dangerText)
 			}
 			ui.Spacer(c)
-			if a.button("Cancel", btnPlain).Height(32).Clicked() {
+			if a.button(i18n.T("gui.forms.cancel"), btnPlain).Height(32).Clicked() {
 				open = false
 			}
-			save := a.button("Save", btnPrimary).Height(32).Disabled(len(e.problems) > 0 || e.saving)
+			save := a.button(i18n.T("gui.forms.save"), btnPrimary).Height(32).Disabled(len(e.problems) > 0 || e.saving)
 			if save.Clicked() {
 				a.saveEditor(e)
 			}
@@ -208,9 +209,9 @@ func (a *App) saveEditor(e *appEditor) {
 					a.ed = nil
 				}
 				if m.IsNew {
-					a.toast("Added " + m.Name + ".")
+					a.toast(i18n.T("gui.forms.editor.added", "name", m.Name))
 				} else {
-					a.toast("Saved " + m.Name + ".")
+					a.toast(i18n.T("gui.forms.editor.saved", "name", m.Name))
 				}
 			}
 		})
@@ -222,7 +223,7 @@ func (a *App) editorForm(e *appEditor) {
 	m := &e.m
 	ui.Grid(c).ColumnTracks(ui.Fixed(130), ui.Fr(1)).GapX(16).GapY(14).Children(func() {
 		// Name
-		lbl := a.label("Name")
+		lbl := a.label(i18n.T("gui.forms.editor.name"))
 		ui.Column(c).Children(func() {
 			in := ui.TextInput(c.Key("f-name"), &m.Name).LabelledBy(lbl).Invalid(a.fieldErr(e, "name") != "")
 			if m.IsNew {
@@ -234,25 +235,25 @@ func (a *App) editorForm(e *appEditor) {
 			a.errText(a.fieldErr(e, "name"))
 		})
 		// ID
-		lbl = a.label("ID")
+		lbl = a.label(i18n.T("gui.forms.editor.id"))
 		ui.Column(c).Children(func() {
 			id := ui.TextInput(c.Key("f-id"), &m.ID).LabelledBy(lbl).Font("monospace").Width(240).Disabled(!m.IsNew).Invalid(a.fieldErr(e, "id") != "")
 			if id.Changed() {
 				e.touched["id"] = true
 			}
-			note := ""
+			helpKey := "gui.forms.editor.idHelp"
 			if !m.IsNew {
-				note = " The ID can’t change once created."
+				helpKey = "gui.forms.editor.idHelpFixed"
 			}
 			shown := m.ID
 			if shown == "" {
-				shown = "id"
+				shown = i18n.T("gui.forms.editor.idPlaceholder")
 			}
-			a.help("Used by shortcuts: waylauncher://launch/" + shown + ". Letters, digits and “-”." + note)
+			a.help(i18n.T(helpKey, "id", shown))
 			a.errText(a.fieldErr(e, "id"))
 		})
 		// Host
-		lbl = a.label("Host")
+		lbl = a.label(i18n.T("gui.forms.editor.host"))
 		ui.Column(c).Children(func() {
 			labels := make([]string, 0, len(a.st.Hosts))
 			cur := ""
@@ -268,8 +269,8 @@ func (a *App) editorForm(e *appEditor) {
 					m.Host = a.st.Hosts[indexOf(labels, cur)].ID
 					e.touched["host"] = true
 				}
-				if l := ui.ButtonBase(c.Key("add-host")).Label("Add host…").Padding(2, 4).Radius(5).TextColor(p.accent); true {
-					l.Children(func() { ui.Text(c, "Add host…").FontSize(12.5) })
+				if l := ui.ButtonBase(c.Key("add-host")).Label(i18n.T("gui.forms.editor.addHost")).Padding(2, 4).Radius(5).TextColor(p.accent); true {
+					l.Children(func() { ui.Text(c, i18n.T("gui.forms.editor.addHost")).FontSize(12.5) })
 					if l.Clicked() {
 						a.openHost("")
 					}
@@ -278,44 +279,44 @@ func (a *App) editorForm(e *appEditor) {
 			a.errText(a.fieldErr(e, "host"))
 		})
 		// Command
-		a.label("Command")
+		a.label(i18n.T("gui.forms.editor.command"))
 		ui.Column(c).Children(func() {
 			a.argsBox(e)
-			a.help("Each argument is passed as-is; nothing is evaluated by a local shell. Press Space or Return after each one, and use quotes for an argument that contains spaces.")
+			a.help(i18n.T("gui.forms.editor.commandHelp"))
 			a.errText(a.fieldErr(e, "command"))
 		})
 		// Working folder
-		lbl = a.label("Working folder")
+		lbl = a.label(i18n.T("gui.forms.editor.cwd"))
 		ui.Column(c).Children(func() {
-			cwd := ui.TextInput(c.Key("f-cwd"), &m.Cwd).LabelledBy(lbl).Font("monospace").Placeholder("optional, an absolute path on the host").Invalid(a.fieldErr(e, "cwd") != "")
+			cwd := ui.TextInput(c.Key("f-cwd"), &m.Cwd).LabelledBy(lbl).Font("monospace").Placeholder(i18n.T("gui.forms.editor.cwdPlaceholder")).Invalid(a.fieldErr(e, "cwd") != "")
 			if cwd.Changed() {
 				e.touched["cwd"] = true
 			}
 			a.errText(a.fieldErr(e, "cwd"))
 		})
 		// Environment
-		a.label("Environment")
+		a.label(i18n.T("gui.forms.editor.env"))
 		ui.Column(c).Children(func() {
 			a.envBox(e)
-			a.help("Not for passwords or tokens: profiles are plain text files.")
+			a.help(i18n.T("gui.forms.editor.envHelp"))
 			a.errText(a.fieldErr(e, "env"))
 		})
 		// Instances
-		a.label("Instances")
+		a.label(i18n.T("gui.forms.editor.instances"))
 		ui.Column(c).Children(func() {
 			ui.RadioGroup(c, func() {
-				ui.Radio(c, &m.Instances, "single", "Single: opening it again focuses its window")
-				ui.Radio(c, &m.Instances, "multiple", "Multiple: “New window” starts another; opening it again follows Settings")
-			}).Label("Instances").Gap(6).Margin(6, 0, 0)
+				ui.Radio(c, &m.Instances, "single", i18n.T("gui.forms.editor.instSingle"))
+				ui.Radio(c, &m.Instances, "multiple", i18n.T("gui.forms.editor.instMultiple"))
+			}).Label(i18n.T("gui.forms.editor.instances")).Gap(6).Margin(6, 0, 0)
 			a.errText(a.fieldErr(e, "instances"))
 		})
 		// Preview
-		a.label("Remote command")
+		a.label(i18n.T("gui.forms.editor.remote"))
 		ui.Column(c).Children(func() {
 			ui.Column(c).Padding(10, 12).Radius(10).Background(p.codeBg).Gap(2).Selectable().Children(func() {
-				ui.Text(c, "STARTS LOCALLY").FontSize(10).FontWeight(600).TextColor(p.codeLabel)
+				ui.Text(c, i18n.T("gui.forms.editor.startsLocally")).FontSize(10).FontWeight(600).TextColor(p.codeLabel)
 				ui.Text(c, e.preview.Local).Font("monospace").FontSize(11).TextColor(p.codeText)
-				ui.Text(c, "RUNS ON THE HOST").FontSize(10).FontWeight(600).TextColor(p.codeLabel).Margin(6, 0, 0)
+				ui.Text(c, i18n.T("gui.forms.editor.runsOnHost")).FontSize(10).FontWeight(600).TextColor(p.codeLabel).Margin(6, 0, 0)
 				ui.Text(c, e.preview.Remote).Font("monospace").FontSize(11).TextColor(p.codeText)
 			})
 			a.errText(a.fieldErr(e, "general"))
@@ -345,20 +346,20 @@ func (a *App) argsBox(e *appEditor) {
 				shown = `""`
 			}
 			ui.Row(c.Key(fmt.Sprint("arg", i))).Height(26).Radius(7).Background(bg).AlignItems(ui.Center).Children(func() {
-				t := ui.ButtonBase(c.Key("t")).Label("Edit argument "+shown).Height(26).Padding(0, 4, 0, 10).Radius(7, 0, 0, 7).AlignItems(ui.Center)
+				t := ui.ButtonBase(c.Key("t")).Label(i18n.T("gui.forms.editor.editArg", "arg", shown)).Height(26).Padding(0, 4, 0, 10).Radius(7, 0, 0, 7).AlignItems(ui.Center)
 				t.Children(func() { ui.Text(c, shown).Font("monospace").FontSize(12).TextColor(fg).SingleLine() })
 				if t.Clicked() {
 					edit = i
 				}
-				x := ui.ButtonBase(c.Key("x")).Label("Remove argument "+shown).Size(22, 26).Center().Radius(0, 7, 7, 0).TextColor(p.muted)
+				x := ui.ButtonBase(c.Key("x")).Label(i18n.T("gui.forms.editor.removeArg", "arg", shown)).Size(22, 26).Center().Radius(0, 7, 7, 0).TextColor(p.muted)
 				x.Children(func() { ui.Icon(c, icX).FontSize(10) })
 				if x.Clicked() {
 					remove = i
 				}
 			})
 		}
-		in := ui.TextInputBase(c.Key("arg-input"), &e.draft).Label("Add argument").Font("monospace").FontSize(12).
-			Height(26).Padding(0, 8).MinWidth(140).Grow(1).Placeholder("argument")
+		in := ui.TextInputBase(c.Key("arg-input"), &e.draft).Label(i18n.T("gui.forms.editor.addArg")).Font("monospace").FontSize(12).
+			Height(26).Padding(0, 8).MinWidth(140).Grow(1).Placeholder(i18n.T("gui.forms.editor.argPlaceholder"))
 		in.OnTextKey(func(k ui.TextKey) bool {
 			switch {
 			case k.Key == ui.KeyEnter && k.Mods == 0:
@@ -423,13 +424,13 @@ func (a *App) envBox(e *appEditor) {
 			}
 			row.Children(func() {
 				ui.Grid(c).ColumnTracks(ui.Fixed(200), ui.Fr(1), ui.Fixed(34)).Children(func() {
-					if ui.TextInputBase(c.Key("n"), &e.m.Env[i].Name).Label("Variable name").Font("monospace").FontSize(12).Height(30).Padding(0, 10).Placeholder("NAME").Changed() {
+					if ui.TextInputBase(c.Key("n"), &e.m.Env[i].Name).Label(i18n.T("gui.forms.editor.varName")).Font("monospace").FontSize(12).Height(30).Padding(0, 10).Placeholder("NAME").Changed() {
 						e.touched["env"] = true
 					}
-					if ui.TextInputBase(c.Key("v"), &e.m.Env[i].Value).Label("Value").Font("monospace").FontSize(12).Height(30).Padding(0, 10).Placeholder("value").Changed() {
+					if ui.TextInputBase(c.Key("v"), &e.m.Env[i].Value).Label(i18n.T("gui.forms.editor.varValue")).Font("monospace").FontSize(12).Height(30).Padding(0, 10).Placeholder(i18n.T("gui.forms.editor.varValuePlaceholder")).Changed() {
 						e.touched["env"] = true
 					}
-					x := ui.ButtonBase(c.Key("x")).Label("Remove variable").Height(30).Center().TextColor(p.muted)
+					x := ui.ButtonBase(c.Key("x")).Label(i18n.T("gui.forms.editor.removeVar")).Height(30).Center().TextColor(p.muted)
 					x.Children(func() { ui.Icon(c, icX).FontSize(11) })
 					if x.Clicked() {
 						remove = i
@@ -445,8 +446,8 @@ func (a *App) envBox(e *appEditor) {
 			e.m.Env = append(e.m.Env[:remove:remove], e.m.Env[remove+1:]...)
 		}
 		ui.Row(c).Padding(6).Children(func() {
-			b := ui.Button(c, "").Label("Add variable").Height(26).Padding(0, 10).Radius(7).Gap(4).FontSize(12)
-			b.Children(func() { ui.Icon(c, icPlus).FontSize(11); ui.Text(c, "Variable") })
+			b := ui.Button(c, "").Label(i18n.T("gui.forms.editor.addVar")).Height(26).Padding(0, 10).Radius(7).Gap(4).FontSize(12)
+			b.Children(func() { ui.Icon(c, icPlus).FontSize(11); ui.Text(c, i18n.T("gui.forms.editor.varButton")) })
 			if b.Clicked() {
 				e.m.Env = append(e.m.Env, launcher.EnvVar{})
 				e.touched["env"] = true

@@ -15,6 +15,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"github.com/keiko233/waylauncher/internal/i18n"
 	"github.com/keiko233/waylauncher/internal/launcher"
 )
 
@@ -230,7 +231,7 @@ func (a *App) sheets() {
 	a.hostSheet()
 	if a.ask != nil {
 		ask := a.ask
-		switch ui.AlertDialog(a.c, &a.askOpen, ask.title, ask.body, "Cancel", ask.yes) {
+		switch ui.AlertDialog(a.c, &a.askOpen, ask.title, ask.body, i18n.T("gui.main.common.cancel"), ask.yes) {
 		case 1:
 			ask.run()
 			a.ask = nil
@@ -244,13 +245,6 @@ func (a *App) sheets() {
 }
 
 // ---- small helpers --------------------------------------------------------
-
-func plural(n int, w string) string {
-	if n == 1 {
-		return "1 " + w
-	}
-	return itoa(n) + " " + w + "s"
-}
 
 func itoa(n int) string {
 	if n == 0 {
@@ -281,13 +275,13 @@ func ago(t time.Time) string {
 	s := int(time.Since(t).Seconds())
 	switch {
 	case s < 60:
-		return "just now"
+		return i18n.T("gui.main.ago.now")
 	case s < 3600:
-		return itoa((s+30)/60) + " min ago"
+		return i18n.T("gui.main.ago.min", "n", (s+30)/60)
 	case s < 86400:
-		return itoa((s+1800)/3600) + " h ago"
+		return i18n.T("gui.main.ago.hour", "n", (s+1800)/3600)
 	}
-	return itoa((s+43200)/86400) + " d ago"
+	return i18n.T("gui.main.ago.day", "n", (s+43200)/86400)
 }
 
 func firstLine(s string) string {

@@ -1,0 +1,20 @@
+{
+  "launcher.edit.envNameInvalid": "名称必须以字母或“_”开头，只能包含字母、数字和“_”。",
+  "launcher.edit.envDuplicate": "变量 {name} 重复。",
+  "launcher.edit.stopInstances": "请先停止它正在运行的实例，再移除。",
+  "launcher.edit.hostExists": "已存在相同 ID 的主机。",
+  "launcher.edit.hostUnknown": "未知的主机。",
+  "launcher.edit.hostInUse": "{name} 仍在使用此主机，请先移除它或改用其他主机。",
+  "launcher.edit.invalidID": "ID“{value}”无效（只能使用 ASCII 字母、数字和“-”）",
+  "launcher.edit.duplicateID": "ID“{value}”重复",
+  "launcher.edit.nameEmpty": "名称不能为空",
+  "launcher.edit.unknownHost": "未知的主机“{value}”",
+  "launcher.edit.commandEmpty": "命令不能为空，且必须以程序名开头",
+  "launcher.edit.commandNUL": "命令包含 NUL 字节",
+  "launcher.edit.cwdAbsolute": "工作文件夹必须是主机上的绝对路径",
+  "launcher.edit.instancesInvalid": "实例模式必须是“single”或“multiple”",
+  "launcher.edit.envNUL": "环境变量 {value} 包含 NUL 字节",
+  "launcher.edit.sshEmpty": "SSH 目标不能为空",
+  "launcher.edit.sshDash": "SSH 目标不能以“-”开头",
+  "launcher.edit.sshSpace": "SSH 目标不能包含空白字符或 NUL"
+}
