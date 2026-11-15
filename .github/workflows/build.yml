@@ -20,7 +20,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         run: scripts/ci-build.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: waylauncher-macos-arm64
           path: dist/*
