@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/egoist/mygo v0.8.3
+	github.com/egoist/mygo v0.10.0
 	golang.org/x/image v0.46.0
 )
 
